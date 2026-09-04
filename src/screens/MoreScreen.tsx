@@ -13,7 +13,9 @@ import { useFinance } from '../context/FinanceContext';
 import { FinanceIcon } from '../utils/iconMap';
 import { useNavigation } from '@react-navigation/native';
 import { showAlert } from '../utils/alert';
-import { getThemeColors } from '../utils/theme';
+import { useTheme } from '../utils/theme';
+import { GlassBackground } from '../components/GlassBackground';
+import { GlassCard } from '../components/GlassCard';
 
 export const MoreScreen: React.FC = () => {
   const { state, exportBackupData, importBackupData, confirmImport, updateSettings } = useFinance();
@@ -80,151 +82,236 @@ export const MoreScreen: React.FC = () => {
     }
   };
 
-  const colors = getThemeColors(state.settings.isDarkMode);
+  const { colors, isDarkMode: currentDarkMode } = useTheme();
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-      <ScrollView contentContainerStyle={styles.content}>
-        
-        {/* Settings Group */}
-        <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
-          <Text style={[styles.cardTitle, { color: colors.text }]}>Settings</Text>
-          <View style={styles.inputGroup}>
-            <Text style={[styles.label, { color: colors.textSecondary }]}>Currency Symbol (e.g. Rs., $, NPR)</Text>
-            <View style={styles.row}>
-              <TextInput
-                style={[styles.textInput, { backgroundColor: colors.inputBackground, borderColor: colors.border, color: colors.text }]}
-                placeholder="e.g. Rs. (leave empty for none)"
-                placeholderTextColor={colors.textSecondary}
-                value={currencySymbol}
-                onChangeText={setCurrencySymbol}
+    <GlassBackground>
+      <SafeAreaView style={styles.container}>
+        <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+          
+          {/* Header Brand Hero */}
+          <GlassCard borderRadius={22} intensity={65} style={styles.heroCard}>
+            <View style={styles.heroContent}>
+              <View style={[styles.heroIconWrapper, { backgroundColor: `${colors.primary}20`, borderColor: `${colors.primary}40` }]}>
+                <FinanceIcon name="wallet" size={26} color={colors.primary} />
+              </View>
+              <View style={styles.heroTextGroup}>
+                <Text style={[styles.heroTitle, { color: colors.text }]}>S-Iza Finance</Text>
+                <Text style={[styles.heroSub, { color: colors.textSecondary }]}>Personal Wealth & Expenses</Text>
+              </View>
+              <View style={[styles.versionBadge, { backgroundColor: colors.glassInput, borderColor: colors.glassBorder }]}>
+                <Text style={[styles.versionBadgeText, { color: colors.primary }]}>PRO</Text>
+              </View>
+            </View>
+          </GlassCard>
+
+          {/* Preferences Group */}
+          <GlassCard borderRadius={22} intensity={55} style={styles.sectionCard}>
+            <View style={styles.sectionHeaderRow}>
+              <View style={[styles.sectionIconCircle, { backgroundColor: 'rgba(56, 189, 248, 0.18)' }]}>
+                <FinanceIcon name="cog" size={14} color="#38BDF8" />
+              </View>
+              <Text style={[styles.cardTitle, { color: colors.text }]}>Preferences</Text>
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={[styles.label, { color: colors.textSecondary }]}>Currency Symbol</Text>
+              <View style={styles.row}>
+                <TextInput
+                  style={[styles.textInput, { backgroundColor: colors.glassInput, borderColor: colors.glassBorder, color: colors.text }]}
+                  placeholder="e.g. Rs., $, NPR"
+                  placeholderTextColor={colors.textSecondary}
+                  value={currencySymbol}
+                  onChangeText={setCurrencySymbol}
+                />
+                <Pressable 
+                  style={[styles.saveBtn, { backgroundColor: colors.primary }]} 
+                  onPress={handleSaveSettings}
+                >
+                  <Text style={styles.saveBtnText}>Save</Text>
+                </Pressable>
+              </View>
+            </View>
+
+            <View style={[styles.inputGroup, { marginTop: 14 }]}>
+              <Text style={[styles.label, { color: colors.textSecondary }]}>Monthly Budget Limit</Text>
+              <View style={styles.row}>
+                <TextInput
+                  style={[styles.textInput, { backgroundColor: colors.glassInput, borderColor: colors.glassBorder, color: colors.text }]}
+                  placeholder="e.g. 35000 (0 or empty for none)"
+                  placeholderTextColor={colors.textSecondary}
+                  keyboardType="decimal-pad"
+                  value={monthlyBudget}
+                  onChangeText={setMonthlyBudget}
+                />
+                <Pressable 
+                  style={[styles.saveBtn, { backgroundColor: colors.primary }]} 
+                  onPress={handleSaveSettings}
+                >
+                  <Text style={styles.saveBtnText}>Save</Text>
+                </Pressable>
+              </View>
+            </View>
+
+            <View style={[styles.menuDivider, { backgroundColor: colors.glassBorder }]} />
+
+            <View style={[styles.menuRow, { borderBottomWidth: 0, paddingBottom: 0 }]}>
+              <View style={[styles.menuIconContainer, { backgroundColor: 'rgba(99, 102, 241, 0.18)' }]}>
+                <FinanceIcon name="moon" size={16} color="#818CF8" />
+              </View>
+              <View style={styles.menuTextCol}>
+                <Text style={[styles.menuLabel, { color: colors.text }]}>Dark Mode</Text>
+                <Text style={[styles.menuSubLabel, { color: colors.textSecondary }]}>Switch app appearance</Text>
+              </View>
+              <Switch
+                value={isDarkMode}
+                onValueChange={handleToggleDarkMode}
+                trackColor={{ false: colors.border, true: colors.primary }}
+                thumbColor={isDarkMode ? '#FFFFFF' : '#F8FAFC'}
               />
-              <Pressable style={styles.saveBtn} onPress={handleSaveSettings}>
-                <Text style={styles.saveBtnText}>Save</Text>
-              </Pressable>
             </View>
-          </View>
-          
-          <View style={[styles.inputGroup, { marginTop: 12 }]}>
-            <Text style={[styles.label, { color: colors.textSecondary }]}>Monthly Budget Limit</Text>
-            <View style={styles.row}>
-              <TextInput
-                style={[styles.textInput, { backgroundColor: colors.inputBackground, borderColor: colors.border, color: colors.text }]}
-                placeholder="e.g. 5000 (0 or empty for none)"
-                placeholderTextColor={colors.textSecondary}
-                keyboardType="decimal-pad"
-                value={monthlyBudget}
-                onChangeText={setMonthlyBudget}
-              />
-              <Pressable style={styles.saveBtn} onPress={handleSaveSettings}>
-                <Text style={styles.saveBtnText}>Save</Text>
-              </Pressable>
-            </View>
-          </View>
-          
-          <View style={[styles.menuDivider, { backgroundColor: colors.border }]} />
+          </GlassCard>
 
-          <View style={[styles.menuRow, { borderBottomWidth: 0, paddingBottom: 0 }]}>
-            <View style={[styles.menuIconContainer, { backgroundColor: state.settings.isDarkMode ? '#334155' : '#F1F5F9' }]}>
-              <FinanceIcon name="moon" size={16} color={colors.text} />
+          {/* Features Group */}
+          <GlassCard borderRadius={22} intensity={55} style={styles.sectionCard}>
+            <View style={styles.sectionHeaderRow}>
+              <View style={[styles.sectionIconCircle, { backgroundColor: 'rgba(16, 185, 129, 0.18)' }]}>
+                <FinanceIcon name="users" size={14} color="#10B981" />
+              </View>
+              <Text style={[styles.cardTitle, { color: colors.text }]}>Features</Text>
             </View>
-            <View style={styles.menuTextCol}>
-              <Text style={[styles.menuLabel, { color: colors.text }]}>Dark Mode</Text>
-              <Text style={[styles.menuSubLabel, { color: colors.textSecondary }]}>Switch app theme to dark mode</Text>
-            </View>
-            <Switch
-              value={isDarkMode}
-              onValueChange={handleToggleDarkMode}
-              trackColor={{ false: '#CBD5E1', true: '#2563EB' }}
-              thumbColor={isDarkMode ? '#FFFFFF' : '#F8FAFC'}
-            />
-          </View>
-        </View>
 
-        {/* Features Group */}
-        <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
-          <Text style={[styles.cardTitle, { color: colors.text }]}>Features</Text>
-          <Pressable 
-            style={styles.menuRow}
-            onPress={() => navigation.navigate('Contacts')}
-          >
-            <View style={[styles.menuIconContainer, { backgroundColor: state.settings.isDarkMode ? '#334155' : '#F1F5F9' }]}>
-              <FinanceIcon name="users" size={16} color={colors.text} />
-            </View>
-            <Text style={[styles.menuLabel, { color: colors.text }]}>Bill Splitting Contacts</Text>
-            <FinanceIcon name="chevron-right" size={14} color={colors.textSecondary} />
-          </Pressable>
-        </View>
+            <Pressable 
+              style={styles.menuRow}
+              onPress={() => navigation.navigate('Contacts')}
+            >
+              <View style={[styles.menuIconContainer, { backgroundColor: 'rgba(16, 185, 129, 0.18)' }]}>
+                <FinanceIcon name="users" size={16} color="#10B981" />
+              </View>
+              <View style={styles.menuTextCol}>
+                <Text style={[styles.menuLabel, { color: colors.text }]}>Bill Splitting Contacts</Text>
+                <Text style={[styles.menuSubLabel, { color: colors.textSecondary }]}>Track owed amounts & settlements</Text>
+              </View>
+              <FinanceIcon name="chevron-right" size={14} color={colors.textSecondary} />
+            </Pressable>
+          </GlassCard>
 
-        {/* Data Management Group */}
-        <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
-          <Text style={[styles.cardTitle, { color: colors.text }]}>Data Backup & Restore</Text>
-          
-          <Pressable style={styles.menuRow} onPress={exportBackupData}>
-            <View style={[styles.menuIconContainer, { backgroundColor: state.settings.isDarkMode ? '#1E3A8A' : '#E0F2FE' }]}>
-              <FinanceIcon name="file-download" size={16} color={state.settings.isDarkMode ? '#60A5FA' : '#0284C7'} />
+          {/* Data Management Group */}
+          <GlassCard borderRadius={22} intensity={55} style={styles.sectionCard}>
+            <View style={styles.sectionHeaderRow}>
+              <View style={[styles.sectionIconCircle, { backgroundColor: 'rgba(139, 92, 246, 0.18)' }]}>
+                <FinanceIcon name="database" size={14} color="#A78BFA" />
+              </View>
+              <Text style={[styles.cardTitle, { color: colors.text }]}>Data Management</Text>
             </View>
-            <View style={styles.menuTextCol}>
-              <Text style={[styles.menuLabel, { color: colors.text }]}>Export Backup</Text>
-              <Text style={[styles.menuSubLabel, { color: colors.textSecondary }]}>Export all data to a .json file</Text>
-            </View>
-            <FinanceIcon name="chevron-right" size={14} color={colors.textSecondary} />
-          </Pressable>
+            
+            <Pressable style={styles.menuRow} onPress={exportBackupData}>
+              <View style={[styles.menuIconContainer, { backgroundColor: 'rgba(56, 189, 248, 0.18)' }]}>
+                <FinanceIcon name="file-download" size={16} color="#38BDF8" />
+              </View>
+              <View style={styles.menuTextCol}>
+                <Text style={[styles.menuLabel, { color: colors.text }]}>Export Backup</Text>
+                <Text style={[styles.menuSubLabel, { color: colors.textSecondary }]}>Save all financial records as JSON</Text>
+              </View>
+              <FinanceIcon name="chevron-right" size={14} color={colors.textSecondary} />
+            </Pressable>
 
-          <View style={[styles.menuDivider, { backgroundColor: colors.border }]} />
+            <View style={[styles.menuDivider, { backgroundColor: colors.glassBorder }]} />
 
-          <Pressable style={styles.menuRow} onPress={handleImport}>
-            <View style={[styles.menuIconContainer, { backgroundColor: state.settings.isDarkMode ? '#065F46' : '#F0FDF4' }]}>
-              <FinanceIcon name="file-upload" size={16} color={state.settings.isDarkMode ? '#34D399' : '#16A34A'} />
-            </View>
-            <View style={styles.menuTextCol}>
-              <Text style={[styles.menuLabel, { color: colors.text }]}>Import Backup</Text>
-              <Text style={[styles.menuSubLabel, { color: colors.textSecondary }]}>Restore all data from a backup .json file</Text>
-            </View>
-            <FinanceIcon name="chevron-right" size={14} color={colors.textSecondary} />
-          </Pressable>
-        </View>
+            <Pressable style={styles.menuRow} onPress={handleImport}>
+              <View style={[styles.menuIconContainer, { backgroundColor: 'rgba(245, 158, 11, 0.18)' }]}>
+                <FinanceIcon name="file-upload" size={16} color="#F59E0B" />
+              </View>
+              <View style={styles.menuTextCol}>
+                <Text style={[styles.menuLabel, { color: colors.text }]}>Import Backup</Text>
+                <Text style={[styles.menuSubLabel, { color: colors.textSecondary }]}>Restore records from a backup file</Text>
+              </View>
+              <FinanceIcon name="chevron-right" size={14} color={colors.textSecondary} />
+            </Pressable>
+          </GlassCard>
 
-      </ScrollView>
-    </SafeAreaView>
+        </ScrollView>
+      </SafeAreaView>
+    </GlassBackground>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
   },
   content: {
     padding: 16,
+    paddingBottom: 110,
   },
-  card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 16,
+  heroCard: {
     marginBottom: 16,
+  },
+  heroContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 18,
+  },
+  heroIconWrapper: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.03,
-    shadowRadius: 4,
-    elevation: 1,
+    marginRight: 14,
+  },
+  heroTextGroup: {
+    flex: 1,
+  },
+  heroTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    letterSpacing: -0.3,
+  },
+  heroSub: {
+    fontSize: 12,
+    marginTop: 2,
+  },
+  versionBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  versionBadgeText: {
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
+  sectionCard: {
+    marginBottom: 16,
+    padding: 18,
+  },
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  sectionIconCircle: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 8,
   },
   cardTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#0F172A',
-    marginBottom: 16,
   },
   inputGroup: {
-    marginBottom: 8,
+    marginBottom: 6,
   },
   label: {
     fontSize: 12,
-    color: '#64748B',
     marginBottom: 8,
-    fontWeight: '500',
+    fontWeight: '600',
   },
   row: {
     flexDirection: 'row',
@@ -232,39 +319,34 @@ const styles = StyleSheet.create({
   },
   textInput: {
     flex: 1,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 8,
-    backgroundColor: '#F8FAFC',
-    paddingHorizontal: 12,
-    height: 40,
+    borderWidth: 1.2,
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    height: 44,
     fontSize: 14,
-    color: '#0F172A',
     marginRight: 8,
   },
   saveBtn: {
-    backgroundColor: '#0F172A',
-    paddingHorizontal: 16,
-    height: 40,
+    paddingHorizontal: 18,
+    height: 44,
     justifyContent: 'center',
     alignItems: 'center',
-    borderRadius: 8,
+    borderRadius: 14,
   },
   saveBtnText: {
     color: '#FFFFFF',
-    fontWeight: '600',
+    fontWeight: '700',
     fontSize: 14,
   },
   menuRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 8,
+    paddingVertical: 10,
   },
   menuIconContainer: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: '#F1F5F9',
+    width: 38,
+    height: 38,
+    borderRadius: 19,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
@@ -275,17 +357,13 @@ const styles = StyleSheet.create({
   menuLabel: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#1E293B',
-    flex: 1,
   },
   menuSubLabel: {
     fontSize: 12,
-    color: '#64748B',
     marginTop: 2,
   },
   menuDivider: {
     height: 1,
-    backgroundColor: '#F1F5F9',
-    marginVertical: 12,
+    marginVertical: 14,
   },
 });

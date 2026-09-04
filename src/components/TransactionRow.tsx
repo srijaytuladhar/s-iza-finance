@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
-import { Transaction, Account, Category } from '../types/finance';
+import { Transaction } from '../types/finance';
 import { FinanceIcon } from '../utils/iconMap';
 import { formatNumber } from '../utils/format';
 import { useFinance } from '../context/FinanceContext';
@@ -9,14 +9,16 @@ import { useTheme } from '../utils/theme';
 interface TransactionRowProps {
   transaction: Transaction;
   onPress?: () => void;
+  isLast?: boolean;
 }
 
 export const TransactionRow: React.FC<TransactionRowProps> = ({
   transaction,
   onPress,
+  isLast = false,
 }) => {
   const { state } = useFinance();
-  const { colors, isDarkMode } = useTheme();
+  const { colors } = useTheme();
   const currencySymbol = state.settings.currencySymbol;
 
   // Find associated account
@@ -33,7 +35,7 @@ export const TransactionRow: React.FC<TransactionRowProps> = ({
   // If it's a Transfer, show a standard blue transfer icon and color.
   const isTransfer = transaction.type === 'Transfer';
   const displayColor = isTransfer 
-    ? '#3B82F6' // Blue
+    ? '#38BDF8' // Liquid blue
     : category?.color || (transaction.type === 'Expense' ? '#EF4444' : '#10B981');
     
   const displayIcon = isTransfer 
@@ -43,19 +45,30 @@ export const TransactionRow: React.FC<TransactionRowProps> = ({
   // Amount text color based on type
   const getAmountColor = () => {
     switch (transaction.type) {
-      case 'Expense': return '#EF4444'; // Red
-      case 'Income': return '#10B981'; // Green
-      case 'Transfer': return '#3B82F6'; // Blue
-      default: return '#0F172A';
+      case 'Expense': return '#EF4444';
+      case 'Income': return '#10B981';
+      case 'Transfer': return '#38BDF8';
+      default: return colors.text;
     }
   };
 
   const formattedAmount = `${transaction.type === 'Expense' ? '-' : transaction.type === 'Income' ? '+' : ''}${formatNumber(transaction.amount, currencySymbol)}`;
 
   return (
-    <Pressable style={[styles.container, { backgroundColor: colors.card, borderBottomColor: colors.border }]} onPress={onPress}>
-      <View style={[styles.iconWrapper, { backgroundColor: `${displayColor}15` }]}>
-        <FinanceIcon name={displayIcon} size={16} color={displayColor} />
+    <Pressable
+      style={({ pressed }) => [
+        styles.container,
+        {
+          backgroundColor: pressed ? colors.glassHighlight : 'transparent',
+          borderBottomColor: colors.glassBorder,
+          borderBottomWidth: isLast ? 0 : StyleSheet.hairlineWidth,
+          opacity: pressed ? 0.85 : 1,
+        },
+      ]}
+      onPress={onPress}
+    >
+      <View style={[styles.iconWrapper, { backgroundColor: `${displayColor}20` }]}>
+        <FinanceIcon name={displayIcon} size={15} color={displayColor} />
       </View>
 
       <View style={styles.detailsContainer}>
@@ -85,16 +98,14 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 12,
+    paddingVertical: 13,
     paddingHorizontal: 16,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
+    borderBottomWidth: StyleSheet.hairlineWidth,
   },
   iconWrapper: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
@@ -106,12 +117,10 @@ const styles = StyleSheet.create({
   description: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#1E293B',
     marginBottom: 2,
   },
   meta: {
     fontSize: 12,
-    color: '#64748B',
   },
   amountContainer: {
     alignItems: 'flex-end',
@@ -122,8 +131,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   dateLabel: {
-    fontSize: 10,
-    color: '#94A3B8',
+    fontSize: 11,
     marginTop: 2,
   },
 });

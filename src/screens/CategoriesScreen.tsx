@@ -16,6 +16,7 @@ import { FinanceIcon } from '../utils/iconMap';
 import { useForm, Controller } from 'react-hook-form';
 import { showAlert } from '../utils/alert';
 import { useTheme } from '../utils/theme';
+import { GlassBackground } from '../components/GlassBackground';
 
 const PRESET_ICONS = [
   'shopping-cart',
@@ -156,9 +157,10 @@ export const CategoriesScreen: React.FC = () => {
   };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-      {/* Category Type Tabs */}
-      <View style={[styles.tabsContainer, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
+    <GlassBackground>
+      <SafeAreaView style={styles.container}>
+        {/* Category Type Tabs */}
+        <View style={[styles.tabsContainer, { backgroundColor: colors.glassCard, borderBottomColor: colors.glassBorder }]}>
         {(['Expense', 'Income'] as CategoryType[]).map(t => (
           <Pressable
             key={t}
@@ -187,9 +189,16 @@ export const CategoriesScreen: React.FC = () => {
           keyExtractor={item => item.id}
           contentContainerStyle={styles.listContent}
           renderItem={({ item }) => (
-            <Pressable style={[styles.categoryItem, { backgroundColor: colors.card, borderColor: colors.border }]} onPress={() => openEditModal(item)}>
-              <View style={[styles.iconWrapper, { backgroundColor: `${item.color}15` }]}>
-                <FinanceIcon name={item.icon} size={18} color={item.color} />
+            <Pressable 
+              style={[
+                styles.categoryItem, 
+                colors.glassShadow,
+                { backgroundColor: colors.glassCard, borderColor: colors.glassBorder }
+              ]} 
+              onPress={() => openEditModal(item)}
+            >
+              <View style={[styles.categoryIconCircle, { backgroundColor: `${item.color}20`, borderColor: `${item.color}40`, borderWidth: 1 }]}>
+                <FinanceIcon name={item.icon} size={20} color={item.color} />
               </View>
               <Text style={[styles.categoryName, { color: colors.text }]}>{item.name}</Text>
               <FinanceIcon name="chevron-right" size={14} color={colors.textSecondary} />
@@ -198,11 +207,20 @@ export const CategoriesScreen: React.FC = () => {
         />
       )}
 
-      {filteredCategories.length > 0 && (
-        <Pressable style={styles.fab} onPress={openAddModal}>
-          <FinanceIcon name="plus" size={20} color="#FFFFFF" />
-        </Pressable>
-      )}
+      {/* Add Button */}
+      <Pressable 
+        style={[
+          styles.fab, 
+          { 
+            backgroundColor: colors.primary,
+            borderColor: colors.glassBorderHighlight,
+            shadowColor: colors.primary,
+          }
+        ]} 
+        onPress={openAddModal}
+      >
+        <FinanceIcon name="plus" size={20} color="#FFFFFF" />
+      </Pressable>
 
       {/* Add/Edit Modal */}
       <Modal
@@ -211,7 +229,8 @@ export const CategoriesScreen: React.FC = () => {
         presentationStyle="pageSheet"
         onRequestClose={() => setModalVisible(false)}
       >
-        <SafeAreaView style={[styles.modalContainer, { backgroundColor: colors.background }]}>
+        <GlassBackground>
+        <SafeAreaView style={[styles.modalContainer, { backgroundColor: 'transparent' }]}>
           <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}>
             <Text style={[styles.modalTitle, { color: colors.text }]}>
               {editingCategory ? 'Edit Category' : 'New Category'}
@@ -337,23 +356,22 @@ export const CategoriesScreen: React.FC = () => {
             </Pressable>
           </ScrollView>
         </SafeAreaView>
+        </GlassBackground>
       </Modal>
     </SafeAreaView>
+    </GlassBackground>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
   },
   tabsContainer: {
     flexDirection: 'row',
-    backgroundColor: '#FFFFFF',
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
   },
   tab: {
     flex: 1,
@@ -362,46 +380,35 @@ const styles = StyleSheet.create({
     borderBottomWidth: 2,
     borderBottomColor: 'transparent',
   },
-  activeTab: {
-    borderBottomColor: '#0F172A',
-  },
+  activeTab: {},
   tabText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#64748B',
   },
-  activeTabText: {
-    color: '#0F172A',
-  },
+  activeTabText: {},
   listContent: {
     padding: 16,
+    paddingBottom: 110,
   },
   categoryItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    borderRadius: 12,
-    marginBottom: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.03,
-    shadowRadius: 4,
-    elevation: 1,
-  },
-  iconWrapper: {
-    width: 36,
-    height: 36,
+    padding: 16,
     borderRadius: 18,
+    borderWidth: 1.2,
+    marginBottom: 10,
+  },
+  categoryIconCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 12,
+    marginRight: 14,
   },
   categoryName: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1E293B',
     flex: 1,
   },
   emptyContainer: {
@@ -413,13 +420,11 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#64748B',
     marginTop: 12,
     marginBottom: 4,
   },
   emptySubText: {
     fontSize: 14,
-    color: '#94A3B8',
     textAlign: 'center',
     marginBottom: 20,
   },
@@ -436,19 +441,18 @@ const styles = StyleSheet.create({
   },
   fab: {
     position: 'absolute',
-    bottom: 24,
-    right: 24,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: '#0F172A',
+    bottom: 96,
+    right: 20,
+    width: 58,
+    height: 58,
+    borderRadius: 29,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 6,
+    borderWidth: 1.5,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.45,
+    shadowRadius: 14,
+    elevation: 8,
   },
   modalContainer: {
     flex: 1,

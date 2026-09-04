@@ -91,9 +91,13 @@ export const Numpad: React.FC<NumpadProps> = ({
         key={key}
         style={({ pressed }) => [
           styles.key,
+          colors.glassShadow,
           {
-            backgroundColor: isDarkMode ? (pressed ? '#334155' : '#1E293B') : (pressed ? '#E2E8F0' : '#FFFFFF'),
-            borderColor: colors.border,
+            backgroundColor: pressed 
+              ? (isDarkMode ? 'rgba(51, 65, 85, 0.85)' : 'rgba(226, 232, 240, 0.85)')
+              : colors.glassCard,
+            borderColor: colors.glassBorder,
+            transform: [{ scale: pressed ? 0.96 : 1 }],
           },
         ]}
         onPress={onPress}
@@ -101,7 +105,7 @@ export const Numpad: React.FC<NumpadProps> = ({
         delayLongPress={400}
       >
         {isBackspace ? (
-          <FinanceIcon name="backspace" size={18} color={colors.text} />
+          <FinanceIcon name="backspace" size={19} color={colors.text} />
         ) : (
           <Text style={[styles.keyText, { color: colors.text }]}>
             {key}
@@ -125,7 +129,7 @@ export const Numpad: React.FC<NumpadProps> = ({
 const styles = StyleSheet.create({
   container: {
     width: '100%',
-    marginVertical: 8,
+    marginVertical: 6,
   },
   row: {
     flexDirection: 'row',
@@ -134,17 +138,12 @@ const styles = StyleSheet.create({
   },
   key: {
     flex: 1,
-    height: 52,
+    height: 54,
     marginHorizontal: 4,
-    borderRadius: 12,
+    borderRadius: 14,
     borderWidth: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.08,
-    shadowRadius: 2,
-    elevation: 2,
   },
   keyText: {
     fontSize: 22,

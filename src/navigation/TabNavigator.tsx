@@ -1,6 +1,8 @@
 import React from 'react';
+import { StyleSheet, View, Platform } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { BlurView } from 'expo-blur';
 import { DashboardScreen } from '../screens/DashboardScreen';
 import { TransactionsScreen } from '../screens/TransactionsScreen';
 import { AccountsScreen } from '../screens/AccountsScreen';
@@ -23,17 +25,17 @@ function MoreStackNavigator() {
   return (
     <Stack.Navigator
       screenOptions={{
-        headerStyle: { backgroundColor: colors.card },
+        headerStyle: { backgroundColor: colors.glassCard },
         headerTintColor: colors.text,
-        headerTitleStyle: { fontWeight: '700' },
+        headerTitleStyle: { fontWeight: '700', fontSize: 17 },
         headerShadowVisible: false,
-        contentStyle: { backgroundColor: colors.background }
+        contentStyle: { backgroundColor: colors.background },
       }}
     >
       <Stack.Screen 
         name="MoreHome" 
         component={MoreScreen} 
-        options={{ title: 'More Options' }}
+        options={{ title: 'More Options', headerShown: false }} 
       />
       <Stack.Screen 
         name="Contacts" 
@@ -56,7 +58,8 @@ export function TabNavigator() {
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
-        tabBarIcon: ({ color, size }) => {
+        headerShown: false,
+        tabBarIcon: ({ color, size, focused }) => {
           let iconName = 'question-circle';
           if (route.name === 'Dashboard') iconName = 'chart-pie';
           else if (route.name === 'Transactions') iconName = 'file-invoice-dollar';
@@ -64,26 +67,40 @@ export function TabNavigator() {
           else if (route.name === 'Categories') iconName = 'tags';
           else if (route.name === 'More') iconName = 'ellipsis-h';
 
-          return <FinanceIcon name={iconName} size={size - 2} color={color} />;
+          return (
+            <View style={[styles.iconWrapper, focused && styles.focusedIconWrapper]}>
+              <FinanceIcon name={iconName} size={size - 2} color={color} />
+            </View>
+          );
         },
-        tabBarActiveTintColor: colors.tabBarActive,
-        tabBarInactiveTintColor: colors.tabBarInactive,
-        tabBarStyle: {
-          backgroundColor: colors.tabBarBackground,
-          borderTopWidth: 1,
-          borderTopColor: colors.border,
-          paddingBottom: 6,
-          paddingTop: 6,
-          height: 60,
-        },
+        tabBarActiveTintColor: colors.primary,
+        tabBarInactiveTintColor: colors.textSecondary,
+        tabBarBackground: () => (
+          <BlurView
+            intensity={80}
+            tint={colors.blurTint}
+            style={[
+              StyleSheet.absoluteFill,
+              {
+                borderRadius: 32,
+                overflow: 'hidden',
+                backgroundColor: colors.glassCard,
+              },
+            ]}
+          />
+        ),
+        tabBarStyle: [
+          styles.tabBar,
+          colors.glassShadow,
+          {
+            borderColor: colors.glassBorder,
+          },
+        ],
         tabBarLabelStyle: {
-          fontSize: 11,
+          fontSize: 10,
           fontWeight: '600',
+          marginBottom: 4,
         },
-        headerStyle: { backgroundColor: colors.card },
-        headerTintColor: colors.text,
-        headerTitleStyle: { fontWeight: '700' },
-        headerShadowVisible: false,
       })}
     >
       <Tab.Screen name="Dashboard" component={DashboardScreen} />
@@ -98,3 +115,29 @@ export function TabNavigator() {
     </Tab.Navigator>
   );
 }
+
+const styles = StyleSheet.create({
+  tabBar: {
+    position: 'absolute',
+    bottom: Platform.OS === 'ios' ? 24 : 16,
+    left: 16,
+    right: 16,
+    height: 64,
+    borderRadius: 32,
+    borderWidth: 1.2,
+    paddingBottom: 4,
+    paddingTop: 6,
+    elevation: 8,
+    backgroundColor: 'transparent',
+  },
+  iconWrapper: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  focusedIconWrapper: {
+    transform: [{ scale: 1.08 }],
+  },
+});

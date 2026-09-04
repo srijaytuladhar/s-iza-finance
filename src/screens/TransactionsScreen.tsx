@@ -22,6 +22,7 @@ import { FinanceIcon } from '../utils/iconMap';
 import { useForm, Controller } from 'react-hook-form';
 import { showAlert } from '../utils/alert';
 import { useTheme } from '../utils/theme';
+import { GlassBackground } from '../components/GlassBackground';
 
 export const TransactionsScreen: React.FC = () => {
   const { 
@@ -227,112 +228,155 @@ export const TransactionsScreen: React.FC = () => {
   };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-      {/* Header Search & Filter */}
-      <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
-        <View style={[styles.searchBar, { backgroundColor: colors.inputBackground, borderColor: colors.border }]}>
-          <FinanceIcon name="search" size={16} color={colors.textSecondary} style={styles.searchIcon} />
-          <TextInput
-            style={[styles.searchInput, { color: colors.text }]}
-            placeholder="Search description..."
-            placeholderTextColor={colors.textSecondary}
-            value={search}
-            onChangeText={setSearch}
+    <GlassBackground>
+      <SafeAreaView style={styles.container}>
+        {/* Floating Liquid Glass Header: Search & Filter */}
+        <View style={[styles.header, colors.glassShadow, { backgroundColor: colors.glassCard, borderColor: colors.glassBorder }]}>
+          <View style={[styles.searchBar, { backgroundColor: colors.glassInput, borderColor: colors.glassBorder }]}>
+            <FinanceIcon name="search" size={16} color={colors.textSecondary} style={styles.searchIcon} />
+            <TextInput
+              style={[styles.searchInput, { color: colors.text }]}
+              placeholder="Search description..."
+              placeholderTextColor={colors.textSecondary}
+              value={search}
+              onChangeText={setSearch}
+            />
+            {search ? (
+              <Pressable onPress={() => setSearch('')}>
+                <FinanceIcon name="times-circle" size={16} color={colors.textSecondary} />
+              </Pressable>
+            ) : null}
+          </View>
+          <Pressable 
+            style={[
+              styles.filterButton, 
+              { 
+                backgroundColor: showFilters ? colors.primary : colors.glassInput, 
+                borderColor: showFilters ? colors.primary : colors.glassBorder 
+              }
+            ]}
+            onPress={() => setShowFilters(!showFilters)}
+          >
+            <FinanceIcon name="filter" size={16} color={showFilters ? '#FFF' : colors.textSecondary} />
+          </Pressable>
+        </View>
+
+        {/* Expanded Filters Glass Card */}
+        {showFilters && (
+          <View style={[styles.filtersPanel, colors.glassShadow, { backgroundColor: colors.glassCard, borderColor: colors.glassBorder }]}>
+            <Text style={[styles.filterTitle, { color: colors.text }]}>Filters</Text>
+            <View style={styles.filtersRow}>
+              {/* Account Selector */}
+              <View style={styles.filterGroup}>
+                <Text style={[styles.filterLabel, { color: colors.textSecondary }]}>Account</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                  <Pressable 
+                    style={[
+                      styles.filterChip, 
+                      { 
+                        backgroundColor: filterAccount === '' ? colors.primary : colors.glassInput, 
+                        borderColor: filterAccount === '' ? colors.primary : colors.glassBorder 
+                      }
+                    ]}
+                    onPress={() => setFilterAccount('')}
+                  >
+                    <Text style={[styles.filterChipText, { color: filterAccount === '' ? '#FFF' : colors.text }]}>All</Text>
+                  </Pressable>
+                  {state.accounts.map(acc => (
+                    <Pressable 
+                      key={acc.id}
+                      style={[
+                        styles.filterChip, 
+                        { 
+                          backgroundColor: filterAccount === acc.id ? colors.primary : colors.glassInput, 
+                          borderColor: filterAccount === acc.id ? colors.primary : colors.glassBorder 
+                        }
+                      ]}
+                      onPress={() => setFilterAccount(acc.id)}
+                    >
+                      <Text style={[styles.filterChipText, { color: filterAccount === acc.id ? '#FFF' : colors.text }]}>{acc.name}</Text>
+                    </Pressable>
+                  ))}
+                </ScrollView>
+              </View>
+            </View>
+
+            <View style={styles.filtersRow}>
+              {/* Type Selector */}
+              <View style={styles.filterGroup}>
+                <Text style={[styles.filterLabel, { color: colors.textSecondary }]}>Type</Text>
+                <View style={styles.chipGroup}>
+                  {['', 'Expense', 'Income', 'Transfer'].map(t => (
+                    <Pressable 
+                      key={t}
+                      style={[
+                        styles.filterChip, 
+                        { 
+                          backgroundColor: filterType === t ? colors.primary : colors.glassInput, 
+                          borderColor: filterType === t ? colors.primary : colors.glassBorder 
+                        }
+                      ]}
+                      onPress={() => setFilterType(t as any)}
+                    >
+                      <Text style={[styles.filterChipText, { color: filterType === t ? '#FFF' : colors.text }]}>
+                        {t === '' ? 'All' : t}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </View>
+              </View>
+            </View>
+          </View>
+        )}
+
+        {/* Transactions List Grouped in Liquid Glass Cards */}
+        {groupedTransactions.length === 0 ? (
+          <View style={[styles.emptyContainer, colors.glassShadow, { backgroundColor: colors.glassCard, borderColor: colors.glassBorder }]}>
+            <View style={[styles.emptyIconCircle, { backgroundColor: `${colors.primary}20` }]}>
+              <FinanceIcon name="file-invoice-dollar" size={36} color={colors.primary} />
+            </View>
+            <Text style={[styles.emptyText, { color: colors.text }]}>No transactions found.</Text>
+            <Text style={[styles.emptySubText, { color: colors.textSecondary }]}>Add some transactions to track your finances.</Text>
+          </View>
+        ) : (
+          <FlatList
+            data={groupedTransactions}
+            keyExtractor={item => item.title}
+            contentContainerStyle={{ paddingBottom: 110 }}
+            showsVerticalScrollIndicator={false}
+            renderItem={({ item }) => (
+              <View style={styles.dateGroupContainer}>
+                <View style={styles.sectionHeader}>
+                  <View style={[styles.dateDot, { backgroundColor: colors.primary }]} />
+                  <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>{item.title}</Text>
+                </View>
+                <View style={[styles.transactionGroupCard, colors.glassShadow, { backgroundColor: colors.glassCard, borderColor: colors.glassBorder }]}>
+                  {item.data.map((tx, idx) => (
+                    <TransactionRow 
+                      key={tx.id} 
+                      transaction={tx} 
+                      isLast={idx === item.data.length - 1}
+                      onPress={() => openEditModal(tx)}
+                    />
+                  ))}
+                </View>
+              </View>
+            )}
           />
-          {search ? (
-            <Pressable onPress={() => setSearch('')}>
-              <FinanceIcon name="times-circle" size={16} color={colors.textSecondary} />
-            </Pressable>
-          ) : null}
-        </View>
-        <Pressable 
-          style={[styles.filterButton, showFilters && styles.filterButtonActive, { backgroundColor: showFilters ? colors.primary : colors.inputBackground, borderColor: colors.border }]}
-          onPress={() => setShowFilters(!showFilters)}
-        >
-          <FinanceIcon name="filter" size={16} color={showFilters ? '#FFF' : colors.textSecondary} />
-        </Pressable>
-      </View>
-
-      {/* Expanded Filters */}
-      {showFilters && (
-        <View style={[styles.filtersPanel, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
-          <Text style={[styles.filterTitle, { color: colors.text }]}>Filters</Text>
-          <View style={styles.filtersRow}>
-            {/* Account Selector */}
-            <View style={styles.filterGroup}>
-              <Text style={[styles.filterLabel, { color: colors.textSecondary }]}>Account</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                <Pressable 
-                  style={[styles.filterChip, filterAccount === '' && styles.filterChipActive, { backgroundColor: filterAccount === '' ? colors.primary : colors.inputBackground, borderColor: colors.border }]}
-                  onPress={() => setFilterAccount('')}
-                >
-                  <Text style={[styles.filterChipText, filterAccount === '' && styles.filterChipTextActive, { color: filterAccount === '' ? '#FFF' : colors.text }]}>All</Text>
-                </Pressable>
-                {state.accounts.map(acc => (
-                  <Pressable 
-                    key={acc.id}
-                    style={[styles.filterChip, filterAccount === acc.id && styles.filterChipActive, { backgroundColor: filterAccount === acc.id ? colors.primary : colors.inputBackground, borderColor: colors.border }]}
-                    onPress={() => setFilterAccount(acc.id)}
-                  >
-                    <Text style={[styles.filterChipText, filterAccount === acc.id && styles.filterChipTextActive, { color: filterAccount === acc.id ? '#FFF' : colors.text }]}>{acc.name}</Text>
-                  </Pressable>
-                ))}
-              </ScrollView>
-            </View>
-          </View>
-
-          <View style={styles.filtersRow}>
-            {/* Type Selector */}
-            <View style={styles.filterGroup}>
-              <Text style={[styles.filterLabel, { color: colors.textSecondary }]}>Type</Text>
-              <View style={styles.chipGroup}>
-                {['', 'Expense', 'Income', 'Transfer'].map(t => (
-                  <Pressable 
-                    key={t}
-                    style={[styles.filterChip, filterType === t && styles.filterChipActive, { backgroundColor: filterType === t ? colors.primary : colors.inputBackground, borderColor: colors.border }]}
-                    onPress={() => setFilterType(t as any)}
-                  >
-                    <Text style={[styles.filterChipText, filterType === t && styles.filterChipTextActive, { color: filterType === t ? '#FFF' : colors.text }]}>
-                      {t === '' ? 'All' : t}
-                    </Text>
-                  </Pressable>
-                ))}
-              </View>
-            </View>
-          </View>
-        </View>
-      )}
-
-      {/* Transactions List */}
-      {groupedTransactions.length === 0 ? (
-        <View style={styles.emptyContainer}>
-          <FinanceIcon name="file-invoice-dollar" size={48} color={colors.textSecondary} />
-          <Text style={[styles.emptyText, { color: colors.textSecondary }]}>No transactions found.</Text>
-          <Text style={[styles.emptySubText, { color: colors.textSecondary }]}>Add some transactions to track your finances.</Text>
-        </View>
-      ) : (
-        <FlatList
-          data={groupedTransactions}
-          keyExtractor={item => item.title}
-          renderItem={({ item }) => (
-            <View>
-              <View style={[styles.sectionHeader, { backgroundColor: colors.background, borderBottomColor: colors.border }]}>
-                <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>{item.title}</Text>
-              </View>
-              {item.data.map(tx => (
-                <TransactionRow 
-                  key={tx.id} 
-                  transaction={tx} 
-                  onPress={() => openEditModal(tx)}
-                />
-              ))}
-            </View>
-          )}
-        />
-      )}
+        )}
 
       {/* Add Button */}
-      <Pressable style={styles.fab} onPress={openAddModal}>
+      <Pressable 
+        style={[
+          styles.fab, 
+          { 
+            backgroundColor: colors.primary, 
+            borderColor: colors.glassBorderHighlight,
+            shadowColor: colors.primary,
+          }
+        ]} 
+        onPress={openAddModal}
+      >
         <FinanceIcon name="plus" size={20} color="#FFFFFF" />
       </Pressable>
 
@@ -343,7 +387,8 @@ export const TransactionsScreen: React.FC = () => {
         presentationStyle="pageSheet"
         onRequestClose={() => setModalVisible(false)}
       >
-        <SafeAreaView style={[styles.modalContainer, { backgroundColor: colors.background }]}>
+        <GlassBackground>
+        <SafeAreaView style={[styles.modalContainer, { backgroundColor: 'transparent' }]}>
           <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}>
             <Text style={[styles.modalTitle, { color: colors.text }]}>
               {editingTransaction ? 'Edit Transaction' : 'New Transaction'}
@@ -557,33 +602,36 @@ export const TransactionsScreen: React.FC = () => {
             </Pressable>
           </ScrollView>
         </SafeAreaView>
+        </GlassBackground>
       </Modal>
     </SafeAreaView>
+    </GlassBackground>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 16,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    padding: 8,
+    marginHorizontal: 16,
+    marginTop: 8,
+    marginBottom: 12,
+    borderRadius: 20,
+    borderWidth: 1.2,
   },
   searchBar: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F1F5F9',
-    borderRadius: 10,
+    borderRadius: 14,
+    borderWidth: 1,
     paddingHorizontal: 12,
-    height: 40,
-    marginRight: 10,
+    height: 42,
+    marginRight: 8,
   },
   searchIcon: {
     marginRight: 8,
@@ -591,30 +639,27 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     fontSize: 14,
-    color: '#0F172A',
   },
   filterButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 10,
-    backgroundColor: '#F1F5F9',
+    width: 42,
+    height: 42,
+    borderRadius: 14,
+    borderWidth: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  filterButtonActive: {
-    backgroundColor: '#0F172A',
-  },
+  filterButtonActive: {},
   filtersPanel: {
-    backgroundColor: '#FFFFFF',
+    marginHorizontal: 16,
+    marginBottom: 14,
     padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    borderRadius: 20,
+    borderWidth: 1.2,
   },
   filterTitle: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '700',
-    color: '#1E293B',
-    marginBottom: 10,
+    marginBottom: 12,
   },
   filtersRow: {
     marginBottom: 12,
@@ -624,74 +669,95 @@ const styles = StyleSheet.create({
   },
   filterLabel: {
     fontSize: 12,
-    color: '#64748B',
+    fontWeight: '600',
     marginBottom: 6,
   },
   chipGroup: {
     flexDirection: 'row',
   },
   filterChip: {
-    backgroundColor: '#F1F5F9',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: 12,
+    borderWidth: 1,
     marginRight: 8,
   },
-  filterChipActive: {
-    backgroundColor: '#0F172A',
-  },
+  filterChipActive: {},
   filterChipText: {
-    fontSize: 12,
-    color: '#475569',
+    fontSize: 13,
+    fontWeight: '600',
   },
   filterChipTextActive: {
     color: '#FFFFFF',
-    fontWeight: '600',
+    fontWeight: '700',
+  },
+  dateGroupContainer: {
+    marginBottom: 16,
   },
   sectionHeader: {
-    backgroundColor: '#F1F5F9',
-    paddingVertical: 6,
-    paddingHorizontal: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    marginBottom: 8,
+    gap: 6,
+  },
+  dateDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
   },
   sectionTitle: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#64748B',
     textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  transactionGroupCard: {
+    marginHorizontal: 16,
+    borderRadius: 20,
+    borderWidth: 1.2,
+    overflow: 'hidden',
   },
   emptyContainer: {
-    flex: 1,
+    marginHorizontal: 16,
+    marginTop: 40,
+    borderRadius: 24,
+    borderWidth: 1.2,
+    padding: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyIconCircle: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 40,
+    marginBottom: 16,
   },
   emptyText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#64748B',
-    marginTop: 12,
-    marginBottom: 4,
+    fontSize: 17,
+    fontWeight: '700',
+    marginBottom: 6,
   },
   emptySubText: {
     fontSize: 14,
-    color: '#94A3B8',
     textAlign: 'center',
   },
   fab: {
     position: 'absolute',
-    bottom: 24,
-    right: 24,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: '#0F172A',
+    bottom: 96,
+    right: 20,
+    width: 58,
+    height: 58,
+    borderRadius: 29,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 6,
+    borderWidth: 1.5,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.45,
+    shadowRadius: 14,
+    elevation: 8,
   },
   modalContainer: {
     flex: 1,

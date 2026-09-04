@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
+import { BlurView } from 'expo-blur';
 import { FinanceIcon } from '../utils/iconMap';
 import { useTheme } from '../utils/theme';
 import { useFinance } from '../context/FinanceContext';
@@ -28,7 +29,7 @@ export const AmountDisplay: React.FC<AmountDisplayProps> = ({
   label = 'Amount',
   error,
 }) => {
-  const { colors } = useTheme();
+  const { colors, isDarkMode } = useTheme();
   const { state } = useFinance();
   const currency = state?.settings?.currencySymbol || '$';
 
@@ -40,41 +41,55 @@ export const AmountDisplay: React.FC<AmountDisplayProps> = ({
       {label ? <Text style={[styles.label, { color: colors.textSecondary }]}>{label}</Text> : null}
       <View
         style={[
-          styles.displayCard,
+          styles.cardContainer,
+          colors.glassShadow,
           {
-            backgroundColor: colors.inputBackground,
-            borderColor: error ? '#EF4444' : colors.border,
+            borderColor: error ? '#EF4444' : colors.glassBorder,
           },
         ]}
       >
-        <View style={styles.amountRow}>
-          <View style={[styles.currencyBadge, { backgroundColor: `${colors.primary}18` }]}>
-            <Text style={[styles.currencyText, { color: colors.primary }]}>{currency}</Text>
-          </View>
-          <Text
+        <View style={styles.blurWrapper}>
+          <BlurView
+            intensity={50}
+            tint={colors.blurTint}
             style={[
-              styles.amountText,
-              { color: isZero ? colors.textSecondary : colors.text },
+              styles.displayCard,
+              { backgroundColor: colors.glassCard },
             ]}
-            numberOfLines={1}
-            adjustsFontSizeToFit
           >
-            {formattedValue}
-          </Text>
-        </View>
+            {/* Specular sheen */}
+            <View style={[styles.topSheen, { backgroundColor: colors.glassBorderHighlight }]} />
 
-        {!isZero && onClear && (
-          <Pressable
-            style={({ pressed }) => [
-              styles.clearBtn,
-              { backgroundColor: colors.card, opacity: pressed ? 0.7 : 1 },
-            ]}
-            onPress={onClear}
-            hitSlop={8}
-          >
-            <FinanceIcon name="times" size={14} color={colors.textSecondary} />
-          </Pressable>
-        )}
+            <View style={styles.amountRow}>
+              <View style={[styles.currencyBadge, { backgroundColor: `${colors.primary}22` }]}>
+                <Text style={[styles.currencyText, { color: colors.primary }]}>{currency}</Text>
+              </View>
+              <Text
+                style={[
+                  styles.amountText,
+                  { color: isZero ? colors.textSecondary : colors.text },
+                ]}
+                numberOfLines={1}
+                adjustsFontSizeToFit
+              >
+                {formattedValue}
+              </Text>
+            </View>
+
+            {!isZero && onClear && (
+              <Pressable
+                style={({ pressed }) => [
+                  styles.clearBtn,
+                  { backgroundColor: colors.inputBackground, opacity: pressed ? 0.7 : 1 },
+                ]}
+                onPress={onClear}
+                hitSlop={8}
+              >
+                <FinanceIcon name="times" size={13} color={colors.textSecondary} />
+              </Pressable>
+            )}
+          </BlurView>
+        </View>
       </View>
       {error && <Text style={styles.errorText}>{error}</Text>}
     </View>
@@ -122,14 +137,28 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginBottom: 6,
   },
+  cardContainer: {
+    borderRadius: 18,
+    borderWidth: 1.2,
+  },
+  blurWrapper: {
+    borderRadius: 18,
+    overflow: 'hidden',
+  },
   displayCard: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    borderWidth: 1.5,
-    borderRadius: 14,
-    paddingHorizontal: 14,
-    height: 60,
+    paddingHorizontal: 16,
+    height: 64,
+  },
+  topSheen: {
+    position: 'absolute',
+    top: 0,
+    left: 20,
+    right: 20,
+    height: 1,
+    opacity: 0.8,
   },
   amountRow: {
     flexDirection: 'row',
@@ -137,19 +166,19 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   currencyBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-    marginRight: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 10,
+    marginRight: 12,
     justifyContent: 'center',
     alignItems: 'center',
   },
   currencyText: {
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: '700',
   },
   amountText: {
-    fontSize: 28,
+    fontSize: 30,
     fontWeight: '700',
     flex: 1,
   },
@@ -160,11 +189,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginLeft: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 1,
-    elevation: 1,
   },
   errorText: {
     fontSize: 12,

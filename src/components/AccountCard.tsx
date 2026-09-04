@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
+import { BlurView } from 'expo-blur';
 import { Account } from '../types/finance';
 import { FinanceIcon } from '../utils/iconMap';
 import { formatNumber } from '../utils/format';
@@ -20,8 +21,8 @@ export const AccountCard: React.FC<AccountCardProps> = ({
   const { state } = useFinance();
   const { colors, isDarkMode } = useTheme();
   const currencySymbol = state.settings.currencySymbol;
+  const accColor = account.color || '#38BDF8';
 
-  // Icon based on type
   const getAccountIcon = (type: Account['type']) => {
     switch (type) {
       case 'Bank': return 'university';
@@ -32,84 +33,121 @@ export const AccountCard: React.FC<AccountCardProps> = ({
   };
 
   return (
-    <Pressable 
-      style={[
-        styles.card, 
-        { borderLeftColor: account.color || '#3B82F6', backgroundColor: colors.card },
-        selected && { borderColor: colors.primary, borderWidth: 1 }
-      ]} 
+    <Pressable
+      style={({ pressed }) => [
+        styles.cardContainer,
+        colors.glassShadow,
+        {
+          borderColor: selected ? accColor : colors.glassBorder,
+          opacity: pressed ? 0.88 : 1,
+        },
+      ]}
       onPress={onPress}
     >
-      <View style={styles.header}>
-        <View style={styles.iconContainer}>
-          <FinanceIcon 
-            name={getAccountIcon(account.type)} 
-            size={18} 
-            color={account.color || '#3B82F6'} 
-          />
-          <Text style={[styles.name, { color: colors.text }]} numberOfLines={1}>{account.name}</Text>
-        </View>
-        {account.isDefault && (
-          <View style={[styles.defaultBadge, { backgroundColor: isDarkMode ? '#334155' : '#F1F5F9' }]}>
-            <Text style={[styles.defaultText, { color: colors.textSecondary }]}>Default</Text>
+      <View style={styles.blurWrapper}>
+        <BlurView
+          intensity={55}
+          tint={colors.blurTint}
+          style={[
+            styles.blurView,
+            { backgroundColor: colors.glassCard },
+          ]}
+        >
+          {/* Specular Top Reflection */}
+          <View style={[styles.topSheen, { backgroundColor: colors.glassBorderHighlight }]} />
+
+          <View style={styles.content}>
+            <View style={styles.header}>
+              <View style={styles.iconContainer}>
+                <View style={[styles.iconCircle, { backgroundColor: `${accColor}22` }]}>
+                  <FinanceIcon 
+                    name={getAccountIcon(account.type)} 
+                    size={16} 
+                    color={accColor} 
+                  />
+                </View>
+                <Text style={[styles.name, { color: colors.text }]} numberOfLines={1}>
+                  {account.name}
+                </Text>
+              </View>
+              {account.isDefault && (
+                <View style={[styles.defaultBadge, { backgroundColor: `${accColor}18` }]}>
+                  <Text style={[styles.defaultText, { color: accColor }]}>Default</Text>
+                </View>
+              )}
+            </View>
+
+            <View style={styles.footer}>
+              <Text style={[styles.typeLabel, { color: colors.textSecondary }]}>
+                {account.type}
+              </Text>
+              <Text style={[styles.balance, { color: colors.text }]}>
+                {formatNumber(account.balance, currencySymbol)}
+              </Text>
+            </View>
           </View>
-        )}
-      </View>
-      <View style={styles.footer}>
-        <Text style={[styles.typeLabel, { color: colors.textSecondary }]}>{account.type}</Text>
-        <Text style={[styles.balance, { color: colors.text }]}>
-          {formatNumber(account.balance, currencySymbol)}
-        </Text>
+        </BlurView>
       </View>
     </Pressable>
   );
 };
 
 const styles = StyleSheet.create({
-  card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    marginVertical: 6,
-    borderLeftWidth: 5,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
+  cardContainer: {
+    borderRadius: 20,
+    borderWidth: 1.2,
+    marginVertical: 7,
   },
-  selectedCard: {
-    borderColor: '#0F172A',
-    borderWidth: 1,
+  blurWrapper: {
+    borderRadius: 20,
+    overflow: 'hidden',
+  },
+  blurView: {
+    width: '100%',
+  },
+  topSheen: {
+    position: 'absolute',
+    top: 0,
+    left: 24,
+    right: 24,
+    height: 1,
+    opacity: 0.7,
+  },
+  content: {
+    padding: 18,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 16,
   },
   iconContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
   },
+  iconCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 10,
+  },
   name: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#1E293B',
-    marginLeft: 10,
+    fontWeight: '700',
     flex: 1,
   },
   defaultBadge: {
-    backgroundColor: '#F1F5F9',
     paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 6,
+    paddingVertical: 3,
+    borderRadius: 10,
   },
   defaultText: {
-    fontSize: 10,
-    fontWeight: '500',
-    color: '#64748B',
+    fontSize: 11,
+    fontWeight: '700',
   },
   footer: {
     flexDirection: 'row',
@@ -117,13 +155,11 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
   },
   typeLabel: {
-    fontSize: 12,
-    color: '#94A3B8',
+    fontSize: 13,
     fontWeight: '500',
   },
   balance: {
-    fontSize: 18,
+    fontSize: 22,
     fontWeight: '700',
-    color: '#0F172A',
   },
 });

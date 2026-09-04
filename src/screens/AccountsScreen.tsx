@@ -18,6 +18,7 @@ import { FinanceIcon } from '../utils/iconMap';
 import { useForm, Controller } from 'react-hook-form';
 import { showAlert } from '../utils/alert';
 import { useTheme } from '../utils/theme';
+import { GlassBackground } from '../components/GlassBackground';
 
 const PRESETS_COLORS = [
   '#3B82F6', // Blue
@@ -140,7 +141,8 @@ export const AccountsScreen: React.FC = () => {
   };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+    <GlassBackground>
+      <SafeAreaView style={styles.container}>
       {state.accounts.length === 0 ? (
         <View style={styles.emptyContainer}>
           <FinanceIcon name="university" size={48} color={colors.textSecondary} />
@@ -165,7 +167,17 @@ export const AccountsScreen: React.FC = () => {
       )}
 
       {state.accounts.length > 0 && (
-        <Pressable style={styles.fab} onPress={openAddModal}>
+        <Pressable 
+          style={[
+            styles.fab, 
+            { 
+              backgroundColor: colors.primary,
+              borderColor: colors.glassBorderHighlight,
+              shadowColor: colors.primary,
+            }
+          ]} 
+          onPress={openAddModal}
+        >
           <FinanceIcon name="plus" size={20} color="#FFFFFF" />
         </Pressable>
       )}
@@ -177,7 +189,8 @@ export const AccountsScreen: React.FC = () => {
         presentationStyle="pageSheet"
         onRequestClose={() => setModalVisible(false)}
       >
-        <SafeAreaView style={[styles.modalContainer, { backgroundColor: colors.background }]}>
+        <GlassBackground>
+        <SafeAreaView style={[styles.modalContainer, { backgroundColor: 'transparent' }]}>
           <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}>
             <Text style={[styles.modalTitle, { color: colors.text }]}>
               {editingAccount ? 'Edit Account' : 'New Account'}
@@ -316,18 +329,20 @@ export const AccountsScreen: React.FC = () => {
             </Pressable>
           </ScrollView>
         </SafeAreaView>
+        </GlassBackground>
       </Modal>
     </SafeAreaView>
+    </GlassBackground>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
   },
   listContent: {
     padding: 16,
+    paddingBottom: 110,
   },
   emptyContainer: {
     flex: 1,
@@ -361,19 +376,18 @@ const styles = StyleSheet.create({
   },
   fab: {
     position: 'absolute',
-    bottom: 24,
-    right: 24,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: '#0F172A',
+    bottom: 96,
+    right: 20,
+    width: 58,
+    height: 58,
+    borderRadius: 29,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 6,
+    borderWidth: 1.5,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.45,
+    shadowRadius: 14,
+    elevation: 8,
   },
   modalContainer: {
     flex: 1,

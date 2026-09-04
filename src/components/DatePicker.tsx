@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, Pressable, Modal, SafeAreaView } from 'react-native';
+import { View, Text, StyleSheet, Pressable, Modal } from 'react-native';
+import { BlurView } from 'expo-blur';
 import { FinanceIcon } from '../utils/iconMap';
 import { useTheme } from '../utils/theme';
 
@@ -30,7 +31,6 @@ export const DatePicker: React.FC<DatePickerProps> = ({
   const [viewMonth, setViewMonth] = useState((valMonth ? valMonth - 1 : now.getMonth()));
 
   const openPicker = () => {
-    // Reset calendar view to currently selected date on open
     setViewYear(valYear || now.getFullYear());
     setViewMonth(valMonth ? valMonth - 1 : now.getMonth());
     setModalVisible(true);
@@ -66,7 +66,6 @@ export const DatePicker: React.FC<DatePickerProps> = ({
     setModalVisible(false);
   };
 
-  // Quick select helper
   const handleSelectShortcut = (offsetDays: number) => {
     const target = new Date();
     target.setDate(target.getDate() - offsetDays);
@@ -74,7 +73,6 @@ export const DatePicker: React.FC<DatePickerProps> = ({
     onChange(dateStr);
   };
 
-  // Formatted display text
   const selectedDateObj = new Date(valYear, valMonth - 1, valDay);
   const todayObj = new Date();
   const yesterdayObj = new Date();
@@ -103,7 +101,6 @@ export const DatePicker: React.FC<DatePickerProps> = ({
     formattedDate = `Yesterday, ${selectedDateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
   }
 
-  // Calendar calculation
   const firstDayOfWeek = new Date(viewYear, viewMonth, 1).getDay();
   const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
 
@@ -121,23 +118,24 @@ export const DatePicker: React.FC<DatePickerProps> = ({
         <Pressable
           style={({ pressed }) => [
             styles.dateButton,
+            colors.glassShadow,
             {
-              backgroundColor: colors.inputBackground,
-              borderColor: colors.border,
-              opacity: pressed ? 0.8 : 1,
+              backgroundColor: colors.glassCard,
+              borderColor: colors.glassBorder,
+              opacity: pressed ? 0.85 : 1,
             },
           ]}
           onPress={openPicker}
         >
           <View style={styles.dateInfo}>
-            <View style={[styles.iconWrapper, { backgroundColor: `${colors.primary}15` }]}>
-              <FinanceIcon name="calendar" size={16} color={colors.primary} />
+            <View style={[styles.iconWrapper, { backgroundColor: `${colors.primary}20` }]}>
+              <FinanceIcon name="calendar" size={15} color={colors.primary} />
             </View>
             <Text style={[styles.dateText, { color: colors.text }]}>
               {formattedDate}
             </Text>
           </View>
-          <FinanceIcon name="chevron-down" size={13} color={colors.textSecondary} />
+          <FinanceIcon name="chevron-down" size={12} color={colors.textSecondary} />
         </Pressable>
 
         {/* Quick Shortcuts */}
@@ -145,9 +143,10 @@ export const DatePicker: React.FC<DatePickerProps> = ({
           <Pressable
             style={[
               styles.shortcutChip,
+              colors.glassShadow,
               {
-                backgroundColor: isToday ? colors.primary : colors.card,
-                borderColor: isToday ? colors.primary : colors.border,
+                backgroundColor: isToday ? colors.primary : colors.glassCard,
+                borderColor: isToday ? colors.primary : colors.glassBorder,
               },
             ]}
             onPress={() => handleSelectShortcut(0)}
@@ -166,9 +165,10 @@ export const DatePicker: React.FC<DatePickerProps> = ({
           <Pressable
             style={[
               styles.shortcutChip,
+              colors.glassShadow,
               {
-                backgroundColor: isYesterday ? colors.primary : colors.card,
-                borderColor: isYesterday ? colors.primary : colors.border,
+                backgroundColor: isYesterday ? colors.primary : colors.glassCard,
+                borderColor: isYesterday ? colors.primary : colors.glassBorder,
               },
             ]}
             onPress={() => handleSelectShortcut(1)}
@@ -186,7 +186,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
         </View>
       </View>
 
-      {/* Calendar Modal */}
+      {/* Calendar Modal with Liquid Glass */}
       <Modal
         visible={modalVisible}
         animationType="fade"
@@ -196,113 +196,126 @@ export const DatePicker: React.FC<DatePickerProps> = ({
         <Pressable style={styles.modalOverlay} onPress={() => setModalVisible(false)}>
           <Pressable
             style={[
-              styles.modalCard,
-              { backgroundColor: colors.card, borderColor: colors.border },
+              styles.modalCardContainer,
+              colors.glassShadow,
+              { borderColor: colors.glassBorder },
             ]}
             onPress={e => e.stopPropagation()}
           >
-            {/* Header / Month Navigation */}
-            <View style={styles.calendarHeader}>
-              <Pressable
-                style={({ pressed }) => [styles.navBtn, { opacity: pressed ? 0.6 : 1 }]}
-                onPress={handlePrevMonth}
-                hitSlop={10}
+            <View style={styles.modalBlurWrapper}>
+              <BlurView
+                intensity={65}
+                tint={colors.blurTint}
+                style={[
+                  styles.modalBlur,
+                  { backgroundColor: colors.glassCard },
+                ]}
               >
-                <FinanceIcon name="chevron-left" size={16} color={colors.text} />
-              </Pressable>
+                {/* Specular sheen */}
+                <View style={[styles.modalSheen, { backgroundColor: colors.glassBorderHighlight }]} />
 
-              <Text style={[styles.calendarMonthText, { color: colors.text }]}>
-                {monthLabel}
-              </Text>
-
-              <Pressable
-                style={({ pressed }) => [styles.navBtn, { opacity: pressed ? 0.6 : 1 }]}
-                onPress={handleNextMonth}
-                hitSlop={10}
-              >
-                <FinanceIcon name="chevron-right" size={16} color={colors.text} />
-              </Pressable>
-            </View>
-
-            {/* Days of Week Header */}
-            <View style={styles.daysOfWeekRow}>
-              {DAYS_OF_WEEK.map(d => (
-                <Text key={d} style={[styles.dayOfWeekText, { color: colors.textSecondary }]}>
-                  {d}
-                </Text>
-              ))}
-            </View>
-
-            {/* Calendar Grid */}
-            <View style={styles.grid}>
-              {/* Empty leading offset days */}
-              {Array.from({ length: firstDayOfWeek }).map((_, i) => (
-                <View key={`empty-${i}`} style={styles.dayCell} />
-              ))}
-
-              {/* Day numbers */}
-              {Array.from({ length: daysInMonth }).map((_, i) => {
-                const dayNum = i + 1;
-                const isSelected =
-                  viewYear === valYear &&
-                  viewMonth === valMonth - 1 &&
-                  dayNum === valDay;
-
-                const isCurrentToday =
-                  viewYear === todayObj.getFullYear() &&
-                  viewMonth === todayObj.getMonth() &&
-                  dayNum === todayObj.getDate();
-
-                return (
+                {/* Header / Month Navigation */}
+                <View style={styles.calendarHeader}>
                   <Pressable
-                    key={`day-${dayNum}`}
-                    style={({ pressed }) => [
-                      styles.dayCell,
-                      isSelected && [styles.selectedDayCell, { backgroundColor: colors.primary }],
-                      isCurrentToday && !isSelected && [
-                        styles.todayCell,
-                        { borderColor: colors.primary },
-                      ],
-                      pressed && { opacity: 0.7 },
-                    ]}
-                    onPress={() => handleSelectDay(dayNum)}
+                    style={({ pressed }) => [styles.navBtn, { opacity: pressed ? 0.6 : 1 }]}
+                    onPress={handlePrevMonth}
+                    hitSlop={10}
                   >
-                    <Text
-                      style={[
-                        styles.dayText,
-                        { color: isSelected ? '#FFFFFF' : colors.text },
-                        (isSelected || isCurrentToday) && styles.dayTextBold,
-                      ]}
-                    >
-                      {dayNum}
+                    <FinanceIcon name="chevron-left" size={16} color={colors.text} />
+                  </Pressable>
+
+                  <Text style={[styles.calendarMonthText, { color: colors.text }]}>
+                    {monthLabel}
+                  </Text>
+
+                  <Pressable
+                    style={({ pressed }) => [styles.navBtn, { opacity: pressed ? 0.6 : 1 }]}
+                    onPress={handleNextMonth}
+                    hitSlop={10}
+                  >
+                    <FinanceIcon name="chevron-right" size={16} color={colors.text} />
+                  </Pressable>
+                </View>
+
+                {/* Days of Week Header */}
+                <View style={styles.daysOfWeekRow}>
+                  {DAYS_OF_WEEK.map(d => (
+                    <Text key={d} style={[styles.dayOfWeekText, { color: colors.textSecondary }]}>
+                      {d}
+                    </Text>
+                  ))}
+                </View>
+
+                {/* Calendar Grid */}
+                <View style={styles.grid}>
+                  {Array.from({ length: firstDayOfWeek }).map((_, i) => (
+                    <View key={`empty-${i}`} style={styles.dayCell} />
+                  ))}
+
+                  {Array.from({ length: daysInMonth }).map((_, i) => {
+                    const dayNum = i + 1;
+                    const isSelected =
+                      viewYear === valYear &&
+                      viewMonth === valMonth - 1 &&
+                      dayNum === valDay;
+
+                    const isCurrentToday =
+                      viewYear === todayObj.getFullYear() &&
+                      viewMonth === todayObj.getMonth() &&
+                      dayNum === todayObj.getDate();
+
+                    return (
+                      <Pressable
+                        key={`day-${dayNum}`}
+                        style={({ pressed }) => [
+                          styles.dayCell,
+                          isSelected && [styles.selectedDayCell, { backgroundColor: colors.primary }],
+                          isCurrentToday && !isSelected && [
+                            styles.todayCell,
+                            { borderColor: colors.primary },
+                          ],
+                          pressed && { opacity: 0.7 },
+                        ]}
+                        onPress={() => handleSelectDay(dayNum)}
+                      >
+                        <Text
+                          style={[
+                            styles.dayText,
+                            { color: isSelected ? '#FFFFFF' : colors.text },
+                            (isSelected || isCurrentToday) && styles.dayTextBold,
+                          ]}
+                        >
+                          {dayNum}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+
+                {/* Modal Actions */}
+                <View style={[styles.modalActions, { borderTopColor: colors.glassBorder }]}>
+                  <Pressable
+                    style={styles.modalCancelBtn}
+                    onPress={() => setModalVisible(false)}
+                  >
+                    <Text style={[styles.modalCancelText, { color: colors.textSecondary }]}>
+                      Cancel
                     </Text>
                   </Pressable>
-                );
-              })}
-            </View>
 
-            {/* Modal Actions */}
-            <View style={[styles.modalActions, { borderTopColor: colors.border }]}>
-              <Pressable
-                style={styles.modalCancelBtn}
-                onPress={() => setModalVisible(false)}
-              >
-                <Text style={[styles.modalCancelText, { color: colors.textSecondary }]}>
-                  Cancel
-                </Text>
-              </Pressable>
-
-              <Pressable
-                style={[styles.modalTodayBtn, { backgroundColor: `${colors.primary}18` }]}
-                onPress={() => {
-                  handleSelectShortcut(0);
-                  setModalVisible(false);
-                }}
-              >
-                <Text style={[styles.modalTodayText, { color: colors.primary }]}>
-                  Set to Today
-                </Text>
-              </Pressable>
+                  <Pressable
+                    style={[styles.modalTodayBtn, { backgroundColor: `${colors.primary}20` }]}
+                    onPress={() => {
+                      handleSelectShortcut(0);
+                      setModalVisible(false);
+                    }}
+                  >
+                    <Text style={[styles.modalTodayText, { color: colors.primary }]}>
+                      Set to Today
+                    </Text>
+                  </Pressable>
+                </View>
+              </BlurView>
             </View>
           </Pressable>
         </Pressable>
@@ -329,8 +342,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     height: 48,
-    borderWidth: 1,
-    borderRadius: 10,
+    borderWidth: 1.2,
+    borderRadius: 14,
     paddingHorizontal: 12,
   },
   dateInfo: {
@@ -354,9 +367,9 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   shortcutChip: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: 18,
     borderWidth: 1,
   },
   shortcutText: {
@@ -368,22 +381,31 @@ const styles = StyleSheet.create({
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: 'rgba(0,0,0,0.4)',
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
   },
-  modalCard: {
+  modalCardContainer: {
     width: '100%',
     maxWidth: 340,
-    borderRadius: 18,
-    borderWidth: 1,
-    padding: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 8,
+    borderRadius: 22,
+    borderWidth: 1.2,
+  },
+  modalBlurWrapper: {
+    borderRadius: 22,
+    overflow: 'hidden',
+  },
+  modalBlur: {
+    padding: 20,
+  },
+  modalSheen: {
+    position: 'absolute',
+    top: 0,
+    left: 20,
+    right: 20,
+    height: 1,
+    opacity: 0.7,
   },
   calendarHeader: {
     flexDirection: 'row',
@@ -442,7 +464,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 16,
     paddingTop: 12,
-    borderTopWidth: 1,
+    borderTopWidth: StyleSheet.hairlineWidth,
   },
   modalCancelBtn: {
     paddingVertical: 8,
@@ -455,7 +477,7 @@ const styles = StyleSheet.create({
   modalTodayBtn: {
     paddingVertical: 8,
     paddingHorizontal: 14,
-    borderRadius: 8,
+    borderRadius: 10,
   },
   modalTodayText: {
     fontSize: 14,

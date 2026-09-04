@@ -45,7 +45,7 @@ export const CategoryPicker: React.FC<CategoryPickerProps> = ({
       <View style={styles.headerRow}>
         <Text style={[styles.label, { color: colors.textSecondary }]}>Category</Text>
         {selectedCategory && (
-          <View style={styles.selectedBadge}>
+          <View style={[styles.selectedBadge, { backgroundColor: `${selectedCategory.color || colors.primary}18` }]}>
             <Text style={[styles.selectedLabel, { color: selectedCategory.color || colors.primary }]}>
               {selectedCategory.name}
             </Text>
@@ -54,7 +54,7 @@ export const CategoryPicker: React.FC<CategoryPickerProps> = ({
       </View>
 
       {filteredCategories.length === 0 ? (
-        <View style={[styles.emptyContainer, { backgroundColor: colors.inputBackground, borderColor: colors.border }]}>
+        <View style={[styles.emptyContainer, { backgroundColor: colors.glassInput, borderColor: colors.glassBorder }]}>
           <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
             No {type.toLowerCase()} categories found
           </Text>
@@ -69,17 +69,19 @@ export const CategoryPicker: React.FC<CategoryPickerProps> = ({
           >
             {filteredCategories.map(cat => {
               const isSelected = value.toLowerCase() === cat.name.toLowerCase();
-              const catColor = cat.color || '#3B82F6';
+              const catColor = cat.color || '#38BDF8';
 
               return (
                 <Pressable
                   key={cat.id}
                   style={({ pressed }) => [
                     styles.categoryPill,
+                    colors.glassShadow,
                     {
-                      backgroundColor: isSelected ? `${catColor}18` : colors.card,
-                      borderColor: isSelected ? catColor : colors.border,
+                      backgroundColor: isSelected ? `${catColor}24` : colors.glassCard,
+                      borderColor: isSelected ? catColor : colors.glassBorder,
                       opacity: pressed ? 0.8 : 1,
+                      transform: [{ scale: pressed ? 0.96 : 1 }],
                     },
                   ]}
                   onPress={() => onChange(cat.name)}
@@ -87,7 +89,7 @@ export const CategoryPicker: React.FC<CategoryPickerProps> = ({
                   <View
                     style={[
                       styles.iconCircle,
-                      { backgroundColor: isSelected ? `${catColor}30` : `${catColor}18` },
+                      { backgroundColor: isSelected ? `${catColor}35` : `${catColor}20` },
                     ]}
                   >
                     <FinanceIcon name={cat.icon} size={14} color={catColor} />
@@ -132,9 +134,9 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   selectedBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    borderRadius: 8,
   },
   selectedLabel: {
     fontSize: 12,
@@ -154,13 +156,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     height: 44,
     borderRadius: 22,
-    borderWidth: 1.5,
+    borderWidth: 1.2,
     marginRight: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
   },
   iconCircle: {
     width: 28,
@@ -172,7 +169,7 @@ const styles = StyleSheet.create({
   },
   categoryName: {
     fontSize: 13,
-    fontWeight: '500',
+    fontWeight: '600',
     maxWidth: 120,
   },
   selectedCategoryName: {
@@ -188,7 +185,7 @@ const styles = StyleSheet.create({
   },
   emptyContainer: {
     height: 44,
-    borderRadius: 10,
+    borderRadius: 12,
     borderWidth: 1,
     justifyContent: 'center',
     alignItems: 'center',

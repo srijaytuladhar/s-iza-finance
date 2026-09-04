@@ -16,6 +16,7 @@ import { formatNumber } from '../utils/format';
 import { useNavigation } from '@react-navigation/native';
 import { showAlert } from '../utils/alert';
 import { useTheme } from '../utils/theme';
+import { GlassBackground } from '../components/GlassBackground';
 
 export const ContactsScreen: React.FC = () => {
   const { state, addContact, deleteContact } = useFinance();
@@ -79,7 +80,8 @@ export const ContactsScreen: React.FC = () => {
   };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+    <GlassBackground>
+      <SafeAreaView style={styles.container}>
       {state.contacts.length === 0 ? (
         <View style={styles.emptyContainer}>
           <FinanceIcon name="users" size={48} color={colors.textSecondary} />
@@ -105,7 +107,11 @@ export const ContactsScreen: React.FC = () => {
 
             return (
               <Pressable 
-                style={[styles.contactRow, { backgroundColor: colors.card, borderColor: colors.border }]}
+                style={[
+                  styles.contactItem, 
+                  colors.glassShadow,
+                  { backgroundColor: colors.glassCard, borderColor: colors.glassBorder }
+                ]}
                 onPress={() => navigation.navigate('ContactDetail', { contactId: item.id })}
               >
                 <View style={[styles.avatar, { backgroundColor: isDarkMode ? '#334155' : '#F1F5F9' }]}>
@@ -125,7 +131,17 @@ export const ContactsScreen: React.FC = () => {
       )}
 
       {state.contacts.length > 0 && (
-        <Pressable style={styles.fab} onPress={() => setModalVisible(true)}>
+        <Pressable 
+          style={[
+            styles.fab, 
+            { 
+              backgroundColor: colors.primary,
+              borderColor: colors.glassBorderHighlight,
+              shadowColor: colors.primary,
+            }
+          ]} 
+          onPress={() => setModalVisible(true)}
+        >
           <FinanceIcon name="plus" size={20} color="#FFFFFF" />
         </Pressable>
       )}
@@ -137,7 +153,7 @@ export const ContactsScreen: React.FC = () => {
         animationType="fade"
         onRequestClose={() => setModalVisible(false)}
       >
-        <View style={styles.modalOverlay}>
+        <Pressable style={styles.modalOverlay} onPress={() => setModalVisible(false)}>
           <View style={[styles.modalContent, { backgroundColor: colors.card }]}>
             <Text style={[styles.modalTitle, { color: colors.text }]}>Add Contact</Text>
             <TextInput
@@ -157,32 +173,28 @@ export const ContactsScreen: React.FC = () => {
               </Pressable>
             </View>
           </View>
-        </View>
+        </Pressable>
       </Modal>
     </SafeAreaView>
+    </GlassBackground>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
   },
   listContent: {
     padding: 16,
+    paddingBottom: 110,
   },
-  contactRow: {
+  contactItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    padding: 14,
-    borderRadius: 12,
-    marginBottom: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.03,
-    shadowRadius: 4,
-    elevation: 1,
+    padding: 16,
+    borderRadius: 18,
+    borderWidth: 1.2,
+    marginBottom: 10,
   },
   avatar: {
     width: 40,
@@ -246,19 +258,18 @@ const styles = StyleSheet.create({
   },
   fab: {
     position: 'absolute',
-    bottom: 24,
-    right: 24,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: '#0F172A',
+    bottom: 96,
+    right: 20,
+    width: 58,
+    height: 58,
+    borderRadius: 29,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 6,
+    borderWidth: 1.5,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.45,
+    shadowRadius: 14,
+    elevation: 8,
   },
   modalOverlay: {
     flex: 1,

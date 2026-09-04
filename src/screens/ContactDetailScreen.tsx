@@ -15,6 +15,7 @@ import { FinanceIcon } from '../utils/iconMap';
 import { formatNumber } from '../utils/format';
 import { showAlert } from '../utils/alert';
 import { useTheme } from '../utils/theme';
+import { GlassBackground } from '../components/GlassBackground';
 
 interface UnsettledSplitItem {
   transactionId: string;
@@ -118,15 +119,16 @@ export const ContactDetailScreen: React.FC = () => {
   };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-      {/* Overview Card */}
-      <View style={[styles.overviewCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-        <View style={[styles.avatarLarge, { backgroundColor: isDarkMode ? '#334155' : '#F1F5F9' }]}>
-          <Text style={[styles.avatarTextLarge, { color: colors.text }]}>{contact.name.charAt(0).toUpperCase()}</Text>
-        </View>
-        <Text style={[styles.name, { color: colors.text }]}>{contact.name}</Text>
-        
-        <View style={[styles.divider, { backgroundColor: colors.border }]} />
+    <GlassBackground>
+      <SafeAreaView style={styles.container}>
+        {/* Overview Card */}
+        <View style={[styles.overviewCard, colors.glassShadow, { backgroundColor: colors.glassCard, borderColor: colors.glassBorder }]}>
+          <View style={[styles.avatarLarge, { backgroundColor: isDarkMode ? '#334155' : '#F1F5F9' }]}>
+            <Text style={[styles.avatarTextLarge, { color: colors.text }]}>{contact.name.charAt(0).toUpperCase()}</Text>
+          </View>
+          <Text style={[styles.name, { color: colors.text }]}>{contact.name}</Text>
+          
+          <View style={[styles.divider, { backgroundColor: colors.glassBorder }]} />
 
         <View style={styles.statsRow}>
           <View style={styles.statCol}>
@@ -169,7 +171,7 @@ export const ContactDetailScreen: React.FC = () => {
       </View>
 
       {/* Unsettled Splits List */}
-      <View style={[styles.listSection, { backgroundColor: colors.card, borderColor: colors.border }]}>
+      <View style={[styles.listSection, colors.glassShadow, { backgroundColor: colors.glassCard, borderColor: colors.glassBorder }]}>
         <Text style={[styles.sectionTitle, { color: colors.text }]}>Unsettled Splits</Text>
         {unsettledSplits.length === 0 ? (
           <View style={styles.emptyContainer}>
@@ -250,13 +252,13 @@ export const ContactDetailScreen: React.FC = () => {
         </View>
       </Modal>
     </SafeAreaView>
+    </GlassBackground>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
   },
   overviewCard: {
     backgroundColor: '#FFFFFF',

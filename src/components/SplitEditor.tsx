@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Pressable, Switch, TextInput, ScrollView } from 'react-native';
 import { Contact, Split } from '../types/finance';
 import { useFinance } from '../context/FinanceContext';
+import { useTheme } from '../utils/theme';
 import { FinanceIcon } from '../utils/iconMap';
 
 interface SplitEditorProps {
@@ -24,6 +25,7 @@ export const SplitEditor: React.FC<SplitEditorProps> = ({
   onChangeIsReceivable,
 }) => {
   const { state } = useFinance();
+  const { colors, isDarkMode } = useTheme();
   const [splitMode, setSplitMode] = useState<'single' | 'multi'>('single');
   const [multiSplitType, setMultiSplitType] = useState<'even' | 'custom'>('even');
   
@@ -109,17 +111,17 @@ export const SplitEditor: React.FC<SplitEditorProps> = ({
 
   if (state.contacts.length === 0) {
     return (
-      <View style={styles.noContactsContainer}>
-        <Text style={styles.noContactsText}>No contacts saved yet.</Text>
-        <Text style={styles.noContactsSubText}>Add contacts under "More ➔ Contacts" to split bills.</Text>
+      <View style={[styles.noContactsContainer, { backgroundColor: colors.glassCard, borderColor: colors.glassBorder }]}>
+        <Text style={[styles.noContactsText, { color: '#F59E0B' }]}>No contacts saved yet.</Text>
+        <Text style={[styles.noContactsSubText, { color: colors.textSecondary }]}>Add contacts under "More ➔ Contacts" to split bills.</Text>
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, colors.glassShadow, { backgroundColor: colors.glassCard, borderColor: colors.glassBorder }]}>
       <View style={styles.headerRow}>
-        <Text style={styles.sectionLabel}>Split / Receivable</Text>
+        <Text style={[styles.sectionLabel, { color: colors.text }]}>Split / Receivable</Text>
         <Switch
           value={isReceivable}
           onValueChange={(val) => {
@@ -129,32 +131,34 @@ export const SplitEditor: React.FC<SplitEditorProps> = ({
               onChangeSplits([]);
             }
           }}
+          trackColor={{ false: colors.border, true: colors.primary }}
+          thumbColor={isReceivable ? '#FFFFFF' : '#F4F4F5'}
         />
       </View>
 
       {isReceivable && (
         <View style={styles.editorBody}>
           {/* Mode Selector */}
-          <View style={styles.modeTabs}>
+          <View style={[styles.modeTabs, { backgroundColor: colors.inputBackground }]}>
             <Pressable 
-              style={[styles.modeTab, splitMode === 'single' && styles.activeModeTab]}
+              style={[styles.modeTab, splitMode === 'single' && [styles.activeModeTab, { backgroundColor: colors.card, borderColor: colors.glassBorder }]]}
               onPress={() => {
                 setSplitMode('single');
                 onChangeSplits([]);
               }}
             >
-              <Text style={[styles.modeTabText, splitMode === 'single' && styles.activeModeTabText]}>
+              <Text style={[styles.modeTabText, { color: colors.textSecondary }, splitMode === 'single' && [styles.activeModeTabText, { color: colors.text }]]}>
                 Single Contact
               </Text>
             </Pressable>
             <Pressable 
-              style={[styles.modeTab, splitMode === 'multi' && styles.activeModeTab]}
+              style={[styles.modeTab, splitMode === 'multi' && [styles.activeModeTab, { backgroundColor: colors.card, borderColor: colors.glassBorder }]]}
               onPress={() => {
                 setSplitMode('multi');
                 onChangeContactId('');
               }}
             >
-              <Text style={[styles.modeTabText, splitMode === 'multi' && styles.activeModeTabText]}>
+              <Text style={[styles.modeTabText, { color: colors.textSecondary }, splitMode === 'multi' && [styles.activeModeTabText, { color: colors.text }]]}>
                 Split Among Many
               </Text>
             </Pressable>
@@ -163,18 +167,23 @@ export const SplitEditor: React.FC<SplitEditorProps> = ({
           {/* Single Contact View */}
           {splitMode === 'single' && (
             <View style={styles.singleContainer}>
-              <Text style={styles.subLabel}>Who owes / is owed this full amount?</Text>
+              <Text style={[styles.subLabel, { color: colors.textSecondary }]}>Who owes / is owed this full amount?</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.contactsScroll}>
                 {state.contacts.map(c => (
                   <Pressable
                     key={c.id}
                     style={[
                       styles.contactChip,
-                      contactId === c.id && styles.activeContactChip
+                      { backgroundColor: colors.inputBackground, borderColor: colors.border },
+                      contactId === c.id && { backgroundColor: colors.primary, borderColor: colors.primary }
                     ]}
                     onPress={() => onChangeContactId(c.id)}
                   >
-                    <Text style={[styles.contactChipText, contactId === c.id && styles.activeContactChipText]}>
+                    <Text style={[
+                      styles.contactChipText, 
+                      { color: colors.textSecondary },
+                      contactId === c.id && { color: '#FFFFFF', fontWeight: '700' }
+                    ]}>
                       {c.name}
                     </Text>
                   </Pressable>
@@ -188,24 +197,40 @@ export const SplitEditor: React.FC<SplitEditorProps> = ({
             <View style={styles.multiContainer}>
               <View style={styles.splitTypeRow}>
                 <Pressable
-                  style={[styles.splitTypeBtn, multiSplitType === 'even' && styles.activeSplitTypeBtn]}
+                  style={[
+                    styles.splitTypeBtn, 
+                    { borderColor: colors.border, backgroundColor: colors.inputBackground },
+                    multiSplitType === 'even' && { backgroundColor: colors.primary, borderColor: colors.primary }
+                  ]}
                   onPress={() => setMultiSplitType('even')}
                 >
-                  <Text style={[styles.splitTypeBtnText, multiSplitType === 'even' && styles.activeSplitTypeBtnText]}>
+                  <Text style={[
+                    styles.splitTypeBtnText, 
+                    { color: colors.textSecondary },
+                    multiSplitType === 'even' && { color: '#FFFFFF', fontWeight: '700' }
+                  ]}>
                     Evenly
                   </Text>
                 </Pressable>
                 <Pressable
-                  style={[styles.splitTypeBtn, multiSplitType === 'custom' && styles.activeSplitTypeBtn]}
+                  style={[
+                    styles.splitTypeBtn, 
+                    { borderColor: colors.border, backgroundColor: colors.inputBackground },
+                    multiSplitType === 'custom' && { backgroundColor: colors.primary, borderColor: colors.primary }
+                  ]}
                   onPress={() => setMultiSplitType('custom')}
                 >
-                  <Text style={[styles.splitTypeBtnText, multiSplitType === 'custom' && styles.activeSplitTypeBtnText]}>
+                  <Text style={[
+                    styles.splitTypeBtnText, 
+                    { color: colors.textSecondary },
+                    multiSplitType === 'custom' && { color: '#FFFFFF', fontWeight: '700' }
+                  ]}>
                     Custom
                   </Text>
                 </Pressable>
               </View>
 
-              <Text style={styles.subLabel}>Select contacts involved in the split:</Text>
+              <Text style={[styles.subLabel, { color: colors.textSecondary }]}>Select contacts involved in the split:</Text>
               {state.contacts.map(c => {
                 const isSelected = !!selectedContacts[c.id];
                 const shareAmount = multiSplitType === 'even'
@@ -213,26 +238,31 @@ export const SplitEditor: React.FC<SplitEditorProps> = ({
                   : (customAmounts[c.id] || '0');
 
                 return (
-                  <View key={c.id} style={styles.contactSplitRow}>
+                  <View key={c.id} style={[styles.contactSplitRow, { borderBottomColor: colors.border }]}>
                     <Pressable 
                       style={styles.contactInfo}
                       onPress={() => handleToggleContact(c.id)}
                     >
-                      <View style={[styles.checkbox, isSelected && styles.checkboxChecked]}>
+                      <View style={[
+                        styles.checkbox, 
+                        { borderColor: colors.border },
+                        isSelected && { backgroundColor: colors.primary, borderColor: colors.primary }
+                      ]}>
                         {isSelected && <FinanceIcon name="check" size={10} color="#fff" />}
                       </View>
-                      <Text style={styles.contactName}>{c.name}</Text>
+                      <Text style={[styles.contactName, { color: colors.text }]}>{c.name}</Text>
                     </Pressable>
 
                     {isSelected && (
                       <View style={styles.amountContainer}>
                         {multiSplitType === 'even' ? (
-                          <Text style={styles.calculatedAmount}>{shareAmount}</Text>
+                          <Text style={[styles.calculatedAmount, { color: colors.text }]}>{shareAmount}</Text>
                         ) : (
                           <TextInput
-                            style={styles.amountInput}
+                            style={[styles.amountInput, { backgroundColor: colors.inputBackground, borderColor: colors.border, color: colors.text }]}
                             keyboardType="decimal-pad"
                             placeholder="0.00"
+                            placeholderTextColor={colors.textSecondary}
                             value={customAmounts[c.id] || ''}
                             onChangeText={(val) => handleCustomAmountChange(c.id, val)}
                           />
@@ -244,7 +274,7 @@ export const SplitEditor: React.FC<SplitEditorProps> = ({
               })}
 
               {multiSplitType === 'even' && splits.length > 0 && (
-                <Text style={styles.summaryText}>
+                <Text style={[styles.summaryText, { color: colors.textSecondary }]}>
                   Your share: {(totalAmount / (splits.length + 1)).toFixed(2)} | Contacts share: {(totalAmount - (totalAmount / (splits.length + 1))).toFixed(2)}
                 </Text>
               )}
