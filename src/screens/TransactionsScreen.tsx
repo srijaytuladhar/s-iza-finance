@@ -13,8 +13,10 @@ import {
 import { useFinance } from '../context/FinanceContext';
 import { Transaction, TransactionType, Split } from '../types/finance';
 import { TransactionRow } from '../components/TransactionRow';
-import { AmountInput } from '../components/AmountInput';
+import { AmountInput, AmountDisplay } from '../components/AmountInput';
+import { Numpad } from '../components/Numpad';
 import { CategoryPicker } from '../components/CategoryPicker';
+import { DatePicker } from '../components/DatePicker';
 import { SplitEditor } from '../components/SplitEditor';
 import { FinanceIcon } from '../utils/iconMap';
 import { useForm, Controller } from 'react-hook-form';
@@ -355,6 +357,9 @@ export const TransactionsScreen: React.FC = () => {
               <Pressable onPress={() => setModalVisible(false)} style={styles.closeButton}>
                 <Text style={styles.closeButtonText}>Cancel</Text>
               </Pressable>
+              <Pressable onPress={handleSubmit(onSubmit)} style={styles.headerSaveButton}>
+                <Text style={[styles.headerSaveButtonText, { color: colors.primary }]}>Save</Text>
+              </Pressable>
             </View>
           </View>
 
@@ -390,6 +395,34 @@ export const TransactionsScreen: React.FC = () => {
                 )}
               />
             </View>
+
+            {/* Amount Display */}
+            <Controller
+              name="amount"
+              control={control}
+              render={({ field: { value, onChange } }) => (
+                <AmountDisplay
+                  value={value}
+                  onClear={() => onChange('')}
+                  label="Amount"
+                />
+              )}
+            />
+
+            {/* Category Picker (Fixed horizontal scroll for Expense/Income) */}
+            {selectedType !== 'Transfer' && (
+              <Controller
+                name="category"
+                control={control}
+                render={({ field: { value, onChange } }) => (
+                  <CategoryPicker
+                    value={value}
+                    onChange={onChange}
+                    type={selectedType as any}
+                  />
+                )}
+              />
+            )}
 
             {/* Account / From Account Selector */}
             <Text style={[styles.label, { color: colors.textSecondary }]}>{selectedType === 'Transfer' ? 'From Account' : 'Account'}</Text>
@@ -451,51 +484,30 @@ export const TransactionsScreen: React.FC = () => {
               </>
             )}
 
-            {/* Amount Input */}
+            {/* Numpad for entering amount */}
             <Controller
               name="amount"
               control={control}
               render={({ field: { value, onChange } }) => (
-                <AmountInput
+                <Numpad
                   value={value}
-                  onChangeText={onChange}
-                  label="Amount"
+                  onChange={onChange}
                 />
               )}
             />
 
-            {/* Category Picker (Only for Expense/Income) */}
-            {selectedType !== 'Transfer' && (
-              <Controller
-                name="category"
-                control={control}
-                render={({ field: { value, onChange } }) => (
-                  <CategoryPicker
-                    value={value}
-                    onChange={onChange}
-                    type={selectedType as any}
-                  />
-                )}
-              />
-            )}
-
-            {/* Date Input */}
-            <View style={styles.inputGroup}>
-              <Text style={[styles.label, { color: colors.textSecondary }]}>Date (YYYY-MM-DD)</Text>
-              <Controller
-                name="date"
-                control={control}
-                render={({ field: { value, onChange } }) => (
-                  <TextInput
-                    style={[styles.textInput, { backgroundColor: colors.inputBackground, borderColor: colors.border, color: colors.text }]}
-                    placeholder="YYYY-MM-DD"
-                    placeholderTextColor={colors.textSecondary}
-                    value={value}
-                    onChangeText={onChange}
-                  />
-                )}
-              />
-            </View>
+            {/* Date Picker */}
+            <Controller
+              name="date"
+              control={control}
+              render={({ field: { value, onChange } }) => (
+                <DatePicker
+                  value={value}
+                  onChange={onChange}
+                  label="Date"
+                />
+              )}
+            />
 
             {/* Description Input */}
             <View style={styles.inputGroup}>
@@ -713,6 +725,14 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: '#3B82F6',
     fontWeight: '600',
+  },
+  headerSaveButton: {
+    padding: 6,
+    marginLeft: 8,
+  },
+  headerSaveButtonText: {
+    fontSize: 15,
+    fontWeight: '700',
   },
   form: {
     flex: 1,

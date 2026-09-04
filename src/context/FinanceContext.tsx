@@ -13,9 +13,10 @@ import {
   Split 
 } from '../types/finance';
 
-interface Settings {
+export interface Settings {
   currencySymbol: string;
   isDarkMode: boolean;
+  monthlyBudget?: number;
 }
 
 interface FinanceState extends FinanceData {
@@ -37,6 +38,7 @@ const initialState: FinanceState = {
   settings: {
     currencySymbol: '', // default is empty (no prefix, just formatted number)
     isDarkMode: false,
+    monthlyBudget: 0,
   },
   isLoading: true,
 };
@@ -200,11 +202,14 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
         
         const loadedSettings: Settings = settingsStr 
           ? JSON.parse(settingsStr) 
-          : { currencySymbol: '', isDarkMode: false };
+          : { currencySymbol: '', isDarkMode: false, monthlyBudget: 0 };
         
         // Ensure defaults if fields are missing in loaded settings
         if (loadedSettings.isDarkMode === undefined) {
           loadedSettings.isDarkMode = false;
+        }
+        if (loadedSettings.monthlyBudget === undefined) {
+          loadedSettings.monthlyBudget = 0;
         }
 
         // Ensure accounts have correct recomputed balances

@@ -20,10 +20,18 @@ export const MoreScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const [currencySymbol, setCurrencySymbol] = useState(state.settings.currencySymbol || '');
   const [isDarkMode, setIsDarkMode] = useState(state.settings.isDarkMode || false);
+  const [monthlyBudget, setMonthlyBudget] = useState(
+    state.settings.monthlyBudget ? state.settings.monthlyBudget.toString() : ''
+  );
 
   const handleSaveSettings = async () => {
     try {
-      await updateSettings({ currencySymbol, isDarkMode });
+      const parsedBudget = parseFloat(monthlyBudget);
+      await updateSettings({ 
+        currencySymbol, 
+        isDarkMode, 
+        monthlyBudget: !monthlyBudget || isNaN(parsedBudget) ? 0 : parsedBudget 
+      });
       showAlert('Success', 'Settings saved successfully!');
     } catch (e) {
       showAlert('Error', 'Failed to save settings: ' + e);
@@ -33,7 +41,12 @@ export const MoreScreen: React.FC = () => {
   const handleToggleDarkMode = async (value: boolean) => {
     setIsDarkMode(value);
     try {
-      await updateSettings({ currencySymbol, isDarkMode: value });
+      const parsedBudget = parseFloat(monthlyBudget);
+      await updateSettings({ 
+        currencySymbol, 
+        isDarkMode: value, 
+        monthlyBudget: !monthlyBudget || isNaN(parsedBudget) ? 0 : parsedBudget 
+      });
     } catch (e) {
       showAlert('Error', 'Failed to update dark mode: ' + e);
     }
@@ -85,6 +98,23 @@ export const MoreScreen: React.FC = () => {
                 placeholderTextColor={colors.textSecondary}
                 value={currencySymbol}
                 onChangeText={setCurrencySymbol}
+              />
+              <Pressable style={styles.saveBtn} onPress={handleSaveSettings}>
+                <Text style={styles.saveBtnText}>Save</Text>
+              </Pressable>
+            </View>
+          </View>
+          
+          <View style={[styles.inputGroup, { marginTop: 12 }]}>
+            <Text style={[styles.label, { color: colors.textSecondary }]}>Monthly Budget Limit</Text>
+            <View style={styles.row}>
+              <TextInput
+                style={[styles.textInput, { backgroundColor: colors.inputBackground, borderColor: colors.border, color: colors.text }]}
+                placeholder="e.g. 5000 (0 or empty for none)"
+                placeholderTextColor={colors.textSecondary}
+                keyboardType="decimal-pad"
+                value={monthlyBudget}
+                onChangeText={setMonthlyBudget}
               />
               <Pressable style={styles.saveBtn} onPress={handleSaveSettings}>
                 <Text style={styles.saveBtnText}>Save</Text>
