@@ -8,59 +8,254 @@ import {
   Pressable, 
   Modal, 
   TextInput,
-  SafeAreaView
+  SafeAreaView,
+  Platform
 } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { useFinance } from '../context/FinanceContext';
+import { TransactionType } from '../types/finance';
 import { formatNumber } from '../utils/format';
 import { FinanceIcon } from '../utils/iconMap';
 import { TransactionRow } from '../components/TransactionRow';
 import { GlassBackground } from '../components/GlassBackground';
+import { TransactionModal } from '../components/TransactionModal';
+import { DatePicker } from '../components/DatePicker';
 import { PieChart } from 'react-native-chart-kit';
 import { useTheme } from '../utils/theme';
 import { showAlert } from '../utils/alert';
 
+type RangePreset = 'month' | '7days' | '30days' | 'year' | 'custom';
+
+const toDateString = (d: Date): string => {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+};
+
+const getMonthRange = (d: Date) => {
+  const start = new Date(d.getFullYear(), d.getMonth(), 1);
+  const end = new Date(d.getFullYear(), d.getMonth() + 1, 0);
+  return {
+    start: toDateString(start),
+    end: toDateString(end),
+  };
+};
+
+const getLastNDaysRange = (days: number) => {
+  const end = new Date();
+  const start = new Date();
+  start.setDate(end.getDate() - (days - 1));
+  return {
+    start: toDateString(start),
+    end: toDateString(end),
+  };
+};
+
+const getYearRange = (year: number) => {
+  return {
+    start: `${year}-01-01`,
+    end: `${year}-12-31`,
+  };
+};
+
 const screenWidth = Dimensions.get('window').width;
 
 export const DashboardScreen: React.FC = () => {
-  const { state, updateSettings } = useFinance();
+  const { state, updateSettings, updateDateFilter } = useFinance();
   const { colors, isDarkMode } = useTheme();
   const currencySymbol = state.settings.currencySymbol;
 
-  // Selected date state (defaults to current month/year)
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  // Cached Date Range Filter State from FinanceContext & AsyncStorage
+  const dateFilter = state.dateFilter;
+  const rangePreset = dateFilter.rangePreset;
+  const currentMonthDate = new Date(dateFilter.currentMonthDate);
+  const customStartDate = dateFilter.customStartDate;
+  const customEndDate = dateFilter.customEndDate;
+  const [isCustomExpanded, setIsCustomExpanded] = useState<boolean>(false);
+
   // Chart view mode: 'bars' or 'donut'
   const [chartView, setChartView] = useState<'bars' | 'donut'>('bars');
+
+  // Floating action transaction modal state
+  const [txModalVisible, setTxModalVisible] = useState(false);
+  const [txModalType, setTxModalType] = useState<TransactionType>('Expense');
+
+  const handleOpenTransaction = (type: TransactionType) => {
+    setTxModalType(type);
+    setTxModalVisible(true);
+  };
 
   // Budget modal state
   const [budgetModalVisible, setBudgetModalVisible] = useState(false);
   const [budgetInput, setBudgetInput] = useState('');
 
-  const handlePrevMonth = () => {
-    setSelectedDate(prev => new Date(prev.getFullYear(), prev.getMonth() - 1, 1));
+  // Determine active start and end dates
+  let activeStartDate = customStartDate;
+  let activeEndDate = customEndDate;
+
+  if (rangePreset === 'month') {
+    const r = getMonthRange(currentMonthDate);
+    activeStartDate = r.start;
+    activeEndDate = r.end;
+  } else if (rangePreset === '7days') {
+    const r = getLastNDaysRange(7);
+    activeStartDate = r.start;
+    activeEndDate = r.end;
+  } else if (rangePreset === '30days') {
+    const r = getLastNDaysRange(30);
+    activeStartDate = r.start;
+    activeEndDate = r.end;
+  } else if (rangePreset === 'year') {
+    const r = getYearRange(currentMonthDate.getFullYear());
+    activeStartDate = r.start;
+    activeEndDate = r.end;
+  }
+
+  // Calculate days count in active range
+  const startTs = new Date(activeStartDate).getTime();
+  const endTs = new Date(activeEndDate).getTime();
+  const activeRangeDays = Math.max(1, Math.round((endTs - startTs) / (1000 * 60 * 60 * 24)) + 1);
+
+  const formatRangeLabel = () => {
+    if (rangePreset === 'month') {
+      return currentMonthDate.toLocaleString('default', { month: 'long', year: 'numeric' });
+    }
+    if (rangePreset === 'year') {
+      return `Year ${currentMonthDate.getFullYear()}`;
+    }
+    if (activeStartDate === activeEndDate) {
+      const [y, m, d] = activeStartDate.split('-').map(Number);
+      return new Date(y, m - 1, d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    }
+    const [y1, m1, d1] = activeStartDate.split('-').map(Number);
+    const [y2, m2, d2] = activeEndDate.split('-').map(Number);
+    const dt1 = new Date(y1, m1 - 1, d1);
+    const dt2 = new Date(y2, m2 - 1, d2);
+    const s1 = dt1.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    const s2 = dt2.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    return `${s1} – ${s2}`;
   };
 
-  const handleNextMonth = () => {
-    setSelectedDate(prev => new Date(prev.getFullYear(), prev.getMonth() + 1, 1));
+  const handleSelectPreset = (preset: RangePreset) => {
+    let newFilter = { ...dateFilter, rangePreset: preset };
+    if (preset === 'custom') {
+      setIsCustomExpanded(true);
+    } else {
+      setIsCustomExpanded(false);
+      if (preset === '7days') {
+        const r = getLastNDaysRange(7);
+        newFilter = { ...newFilter, customStartDate: r.start, customEndDate: r.end };
+      } else if (preset === '30days') {
+        const r = getLastNDaysRange(30);
+        newFilter = { ...newFilter, customStartDate: r.start, customEndDate: r.end };
+      } else if (preset === 'year') {
+        const r = getYearRange(new Date().getFullYear());
+        newFilter = { ...newFilter, customStartDate: r.start, customEndDate: r.end };
+      } else if (preset === 'month') {
+        const r = getMonthRange(new Date());
+        newFilter = {
+          ...newFilter,
+          currentMonthDate: new Date().toISOString(),
+          customStartDate: r.start,
+          customEndDate: r.end,
+        };
+      }
+    }
+    updateDateFilter(newFilter);
   };
 
-  // Filter transactions for the selected month
-  const targetYear = selectedDate.getFullYear();
-  const targetMonth = selectedDate.getMonth();
+  const handlePrevPeriod = () => {
+    let newFilter = { ...dateFilter };
+    if (rangePreset === 'month') {
+      const prev = new Date(currentMonthDate.getFullYear(), currentMonthDate.getMonth() - 1, 1);
+      const r = getMonthRange(prev);
+      newFilter = {
+        ...newFilter,
+        currentMonthDate: prev.toISOString(),
+        customStartDate: r.start,
+        customEndDate: r.end,
+      };
+    } else if (rangePreset === 'year') {
+      const prevYear = currentMonthDate.getFullYear() - 1;
+      const prev = new Date(prevYear, 0, 1);
+      const r = getYearRange(prevYear);
+      newFilter = {
+        ...newFilter,
+        currentMonthDate: prev.toISOString(),
+        customStartDate: r.start,
+        customEndDate: r.end,
+      };
+    } else {
+      const [y1, m1, d1] = activeStartDate.split('-').map(Number);
+      const [y2, m2, d2] = activeEndDate.split('-').map(Number);
+      const s = new Date(y1, m1 - 1, d1);
+      s.setDate(s.getDate() - activeRangeDays);
+      const e = new Date(y2, m2 - 1, d2);
+      e.setDate(e.getDate() - activeRangeDays);
+      newFilter = {
+        ...newFilter,
+        rangePreset: 'custom',
+        customStartDate: toDateString(s),
+        customEndDate: toDateString(e),
+      };
+    }
+    updateDateFilter(newFilter);
+  };
 
-  const monthTransactions = state.transactions.filter(tx => {
-    const d = new Date(tx.date);
-    return d.getFullYear() === targetYear && d.getMonth() === targetMonth;
+  const handleNextPeriod = () => {
+    let newFilter = { ...dateFilter };
+    if (rangePreset === 'month') {
+      const next = new Date(currentMonthDate.getFullYear(), currentMonthDate.getMonth() + 1, 1);
+      const r = getMonthRange(next);
+      newFilter = {
+        ...newFilter,
+        currentMonthDate: next.toISOString(),
+        customStartDate: r.start,
+        customEndDate: r.end,
+      };
+    } else if (rangePreset === 'year') {
+      const nextYear = currentMonthDate.getFullYear() + 1;
+      const next = new Date(nextYear, 0, 1);
+      const r = getYearRange(nextYear);
+      newFilter = {
+        ...newFilter,
+        currentMonthDate: next.toISOString(),
+        customStartDate: r.start,
+        customEndDate: r.end,
+      };
+    } else {
+      const [y1, m1, d1] = activeStartDate.split('-').map(Number);
+      const [y2, m2, d2] = activeEndDate.split('-').map(Number);
+      const s = new Date(y1, m1 - 1, d1);
+      s.setDate(s.getDate() + activeRangeDays);
+      const e = new Date(y2, m2 - 1, d2);
+      e.setDate(e.getDate() + activeRangeDays);
+      newFilter = {
+        ...newFilter,
+        rangePreset: 'custom',
+        customStartDate: toDateString(s),
+        customEndDate: toDateString(e),
+      };
+    }
+    updateDateFilter(newFilter);
+  };
+
+  // Filter transactions for the selected date range
+  const rangeTransactions = state.transactions.filter(tx => {
+    const txDateStr = tx.date.split('T')[0];
+    return txDateStr >= activeStartDate && txDateStr <= activeEndDate;
   });
+  const monthTransactions = rangeTransactions; // backward compatibility
 
   // Calculate total balance across all accounts
   const totalBalance = state.accounts.reduce((sum, acc) => sum + (acc.balance || 0), 0);
 
-  // Calculate total income and expense for the selected month
+  // Calculate total income and expense for the selected range
   let monthlyIncome = 0;
   let monthlyExpense = 0;
 
-  monthTransactions.forEach(tx => {
+  rangeTransactions.forEach(tx => {
     if (tx.type === 'Income') {
       monthlyIncome += tx.amount;
     } else if (tx.type === 'Expense') {
@@ -85,12 +280,12 @@ export const DashboardScreen: React.FC = () => {
 
   // Calculate daily burn rate and safe daily spend
   const today = new Date();
-  const isCurrentMonth = today.getFullYear() === targetYear && today.getMonth() === targetMonth;
-  const daysInMonth = new Date(targetYear, targetMonth + 1, 0).getDate();
+  const isCurrentMonth = rangePreset === 'month' && today.getFullYear() === currentMonthDate.getFullYear() && today.getMonth() === currentMonthDate.getMonth();
+  const daysInMonth = new Date(currentMonthDate.getFullYear(), currentMonthDate.getMonth() + 1, 0).getDate();
   const currentDay = isCurrentMonth ? today.getDate() : daysInMonth;
   const daysLeft = isCurrentMonth ? Math.max(1, daysInMonth - currentDay + 1) : 1;
   const dailySafeSpend = hasBudget ? remainingBudget / daysLeft : 0;
-  const dailyAvgSpend = currentDay > 0 ? monthlyExpense / currentDay : 0;
+  const dailyAvgSpend = activeRangeDays > 0 ? monthlyExpense / activeRangeDays : 0;
 
   const getBudgetColor = () => {
     if (isBudgetExceeded) return '#EF4444';
@@ -162,8 +357,6 @@ export const DashboardScreen: React.FC = () => {
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
     .slice(0, 5);
 
-  const monthYearLabel = selectedDate.toLocaleString('default', { month: 'long', year: 'numeric' });
-
   return (
     <GlassBackground>
       <SafeAreaView style={styles.container}>
@@ -179,39 +372,183 @@ export const DashboardScreen: React.FC = () => {
             tint={colors.blurTint}
             style={[
               styles.balanceCardBlur,
-              { backgroundColor: isDarkMode ? 'rgba(15, 23, 42, 0.75)' : 'rgba(15, 23, 42, 0.88)' },
+              { backgroundColor: isDarkMode ? 'rgba(15, 23, 42, 0.75)' : 'rgba(255, 255, 255, 0.78)' },
             ]}
           >
             {/* Top Specular Sheen */}
-            <View style={[styles.specularSheen, { backgroundColor: 'rgba(255, 255, 255, 0.4)' }]} />
+            <View style={[styles.specularSheen, { backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.4)' : 'rgba(255, 255, 255, 0.9)' }]} />
 
             <View style={styles.balanceTopRow}>
-              <Text style={styles.balanceLabel}>Total Net Worth</Text>
-              <View style={styles.balanceChip}>
-                <FinanceIcon name="shield-alt" size={11} color="#38BDF8" />
-                <Text style={styles.balanceChipText}>Live Balance</Text>
+              <Text style={[styles.balanceLabel, { color: isDarkMode ? '#94A3B8' : '#64748B' }]}>Total Net Worth</Text>
+              <View style={[styles.balanceChip, { backgroundColor: isDarkMode ? 'rgba(56, 189, 248, 0.18)' : 'rgba(2, 132, 199, 0.12)' }]}>
+                <FinanceIcon name="shield-alt" size={11} color={isDarkMode ? '#38BDF8' : '#0284C7'} />
+                <Text style={[styles.balanceChipText, { color: isDarkMode ? '#38BDF8' : '#0284C7' }]}>Live Balance</Text>
               </View>
             </View>
 
-            <Text style={styles.balanceValue}>
+            <Text style={[styles.balanceValue, { color: isDarkMode ? '#FFFFFF' : '#000000' }]}>
               {formatNumber(totalBalance, currencySymbol)}
             </Text>
 
             <View style={styles.balanceFooterRow}>
-              <Text style={styles.balanceFooterSub}>Across {state.accounts.length} linked accounts</Text>
+              <Text style={[styles.balanceFooterSub, { color: isDarkMode ? '#94A3B8' : '#64748B' }]}>Across {state.accounts.length} linked accounts</Text>
             </View>
           </BlurView>
         </View>
 
-        {/* FROSTED GLASS MONTH SELECTOR */}
-        <View style={[styles.monthSelector, colors.glassShadow, { backgroundColor: colors.glassCard, borderColor: colors.glassBorder }]}>
-          <Pressable onPress={handlePrevMonth} style={styles.monthArrow} hitSlop={10}>
-            <FinanceIcon name="chevron-left" size={15} color={colors.textSecondary} />
-          </Pressable>
-          <Text style={[styles.monthLabel, { color: colors.text }]}>{monthYearLabel}</Text>
-          <Pressable onPress={handleNextMonth} style={styles.monthArrow} hitSlop={10}>
-            <FinanceIcon name="chevron-right" size={15} color={colors.textSecondary} />
-          </Pressable>
+        {/* FROSTED LIQUID GLASS DATE RANGE FILTER JUST ABOVE INCOME & EXPENSE */}
+        <View style={[styles.dateFilterCard, colors.glassShadow, { backgroundColor: colors.glassCard, borderColor: colors.glassBorder }]}>
+          {/* Specular sheen */}
+          <View style={[styles.specularSheen, { backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.25)' : 'rgba(255, 255, 255, 0.75)' }]} />
+
+          {/* Top Bar: Nav Arrows + Date Range Display Pill */}
+          <View style={styles.dateFilterTopRow}>
+            <Pressable onPress={handlePrevPeriod} style={styles.periodArrowBtn} hitSlop={10}>
+              <FinanceIcon name="chevron-left" size={14} color={colors.textSecondary} />
+            </Pressable>
+
+            <Pressable
+              style={({ pressed }) => [
+                styles.rangeDisplayPill,
+                {
+                  backgroundColor: colors.glassInput,
+                  borderColor: isCustomExpanded ? colors.primary : colors.glassBorder,
+                  opacity: pressed ? 0.82 : 1,
+                },
+              ]}
+              onPress={() => {
+                if (rangePreset !== 'custom') {
+                  updateDateFilter({
+                    ...dateFilter,
+                    rangePreset: 'custom',
+                  });
+                }
+                setIsCustomExpanded(prev => !prev);
+              }}
+            >
+              <View style={[styles.rangeIconCircle, { backgroundColor: `${colors.primary}20` }]}>
+                <FinanceIcon name="calendar-alt" size={12} color={colors.primary} />
+              </View>
+              <View style={styles.rangeTextContainer}>
+                <Text style={[styles.rangeLabelText, { color: colors.text }]} numberOfLines={1}>
+                  {formatRangeLabel()}
+                </Text>
+                <Text style={[styles.rangeDaysSubText, { color: colors.textSecondary }]}>
+                  {activeRangeDays} {activeRangeDays === 1 ? 'day' : 'days'}
+                </Text>
+              </View>
+              <FinanceIcon
+                name={isCustomExpanded ? 'chevron-up' : 'sliders-h'}
+                size={11}
+                color={isCustomExpanded ? colors.primary : colors.textSecondary}
+              />
+            </Pressable>
+
+            <Pressable onPress={handleNextPeriod} style={styles.periodArrowBtn} hitSlop={10}>
+              <FinanceIcon name="chevron-right" size={14} color={colors.textSecondary} />
+            </Pressable>
+          </View>
+
+          {/* Preset Quick Filter Chips */}
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.presetScrollContent}
+            style={styles.presetScrollView}
+          >
+            {[
+              { id: 'month', label: 'This Month' },
+              { id: '7days', label: 'Last 7 Days' },
+              { id: '30days', label: 'Last 30 Days' },
+              { id: 'year', label: 'This Year' },
+              { id: 'custom', label: 'Custom Range ⚙️' },
+            ].map(p => {
+              const isSelected = rangePreset === p.id;
+              return (
+                <Pressable
+                  key={p.id}
+                  style={[
+                    styles.rangePresetChip,
+                    {
+                      backgroundColor: isSelected ? colors.primary : colors.glassInput,
+                      borderColor: isSelected ? colors.primary : colors.glassBorder,
+                    },
+                  ]}
+                  onPress={() => handleSelectPreset(p.id as RangePreset)}
+                >
+                  <Text
+                    style={[
+                      styles.rangePresetChipText,
+                      { color: isSelected ? '#FFFFFF' : colors.textSecondary },
+                      isSelected && styles.rangePresetChipTextActive,
+                    ]}
+                  >
+                    {p.label}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+
+          {/* Expandable Custom Range Drawer */}
+          {isCustomExpanded && (
+            <View style={[styles.customRangeDrawer, { borderTopColor: colors.glassBorder }]}>
+              <View style={styles.customDrawerHeader}>
+                <View style={styles.customDrawerTitleGroup}>
+                  <FinanceIcon name="calendar" size={13} color={colors.primary} />
+                  <Text style={[styles.customDrawerTitle, { color: colors.text }]}>Custom Date Range</Text>
+                </View>
+                <Pressable
+                  style={styles.closeDrawerBtn}
+                  onPress={() => setIsCustomExpanded(false)}
+                  hitSlop={8}
+                >
+                  <FinanceIcon name="times" size={12} color={colors.textSecondary} />
+                </Pressable>
+              </View>
+
+              <View style={styles.customPickersContainer}>
+                <DatePicker
+                  label="Start Date"
+                  value={customStartDate}
+                  onChange={val => {
+                    const newEnd = val > customEndDate ? val : customEndDate;
+                    updateDateFilter({
+                      ...dateFilter,
+                      rangePreset: 'custom',
+                      customStartDate: val,
+                      customEndDate: newEnd,
+                    });
+                  }}
+                />
+                <DatePicker
+                  label="End Date"
+                  value={customEndDate}
+                  onChange={val => {
+                    const newStart = val < customStartDate ? val : customStartDate;
+                    updateDateFilter({
+                      ...dateFilter,
+                      rangePreset: 'custom',
+                      customStartDate: newStart,
+                      customEndDate: val,
+                    });
+                  }}
+                />
+              </View>
+
+              <Pressable
+                style={({ pressed }) => [
+                  styles.applyRangeBtn,
+                  { backgroundColor: colors.primary, opacity: pressed ? 0.88 : 1 },
+                ]}
+                onPress={() => setIsCustomExpanded(false)}
+              >
+                <Text style={styles.applyRangeBtnText}>
+                  Apply Filter ({activeRangeDays} {activeRangeDays === 1 ? 'day' : 'days'})
+                </Text>
+              </Pressable>
+            </View>
+          )}
         </View>
 
         {/* FROSTED GLASS MONTHLY SUMMARY (INCOME / EXPENSE) */}
@@ -604,6 +941,59 @@ export const DashboardScreen: React.FC = () => {
           </Pressable>
         </Modal>
       </ScrollView>
+
+      {/* FLOATING ACTION BUTTONS DOCK: Expense, Transfer, Income */}
+      <View style={styles.floatingActionDock}>
+        {/* EXPENSE BUTTON */}
+        <Pressable
+          style={({ pressed }) => [
+            styles.expenseFloatingBtn,
+            { opacity: pressed ? 0.88 : 1, transform: [{ scale: pressed ? 0.96 : 1 }] },
+          ]}
+          onPress={() => handleOpenTransaction('Expense')}
+        >
+          <View style={[styles.floatingSpecularSheen, { backgroundColor: 'rgba(255, 255, 255, 0.45)' }]} />
+          <View style={styles.btnIconCircle}>
+            <FinanceIcon name="arrow-down" size={12} color="#FFFFFF" />
+          </View>
+          <Text style={styles.expenseBtnText}>Expense</Text>
+        </Pressable>
+
+        {/* TRANSFER BUTTON (A bit smaller) */}
+        <Pressable
+          style={({ pressed }) => [
+            styles.transferFloatingBtn,
+            { opacity: pressed ? 0.88 : 1, transform: [{ scale: pressed ? 0.95 : 1 }] },
+          ]}
+          onPress={() => handleOpenTransaction('Transfer')}
+        >
+          <View style={[styles.floatingSpecularSheen, { backgroundColor: 'rgba(255, 255, 255, 0.45)' }]} />
+          <FinanceIcon name="exchange-alt" size={13} color="#FFFFFF" />
+          <Text style={styles.transferBtnText}>Transfer</Text>
+        </Pressable>
+
+        {/* INCOME BUTTON */}
+        <Pressable
+          style={({ pressed }) => [
+            styles.incomeFloatingBtn,
+            { opacity: pressed ? 0.88 : 1, transform: [{ scale: pressed ? 0.96 : 1 }] },
+          ]}
+          onPress={() => handleOpenTransaction('Income')}
+        >
+          <View style={[styles.floatingSpecularSheen, { backgroundColor: 'rgba(255, 255, 255, 0.45)' }]} />
+          <View style={styles.btnIconCircle}>
+            <FinanceIcon name="arrow-up" size={12} color="#FFFFFF" />
+          </View>
+          <Text style={styles.incomeBtnText}>Income</Text>
+        </Pressable>
+      </View>
+
+      {/* TRANSACTION MODAL */}
+      <TransactionModal
+        visible={txModalVisible}
+        initialType={txModalType}
+        onClose={() => setTxModalVisible(false)}
+      />
       </SafeAreaView>
     </GlassBackground>
   );
@@ -615,7 +1005,7 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: 16,
-    paddingBottom: 110, // Account for floating tab bar
+    paddingBottom: 175, // Account for floating action buttons and floating tab bar
   },
   balanceCardWrapper: {
     borderRadius: 24,
@@ -641,7 +1031,6 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   balanceLabel: {
-    color: '#94A3B8',
     fontSize: 13,
     fontWeight: '600',
     textTransform: 'uppercase',
@@ -650,7 +1039,6 @@ const styles = StyleSheet.create({
   balanceChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(56, 189, 248, 0.18)',
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 12,
@@ -658,11 +1046,9 @@ const styles = StyleSheet.create({
   },
   balanceChipText: {
     fontSize: 10,
-    color: '#38BDF8',
     fontWeight: '700',
   },
   balanceValue: {
-    color: '#FFFFFF',
     fontSize: 34,
     fontWeight: '800',
     letterSpacing: -0.5,
@@ -673,23 +1059,119 @@ const styles = StyleSheet.create({
   },
   balanceFooterSub: {
     fontSize: 12,
-    color: '#94A3B8',
   },
-  monthSelector: {
+  dateFilterCard: {
+    borderRadius: 20,
+    padding: 12,
+    marginBottom: 14,
+    borderWidth: 1.2,
+    overflow: 'hidden',
+  },
+  dateFilterTopRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    borderRadius: 18,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    marginBottom: 14,
-    borderWidth: 1.2,
+    gap: 8,
   },
-  monthArrow: {
-    padding: 6,
+  periodArrowBtn: {
+    padding: 8,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  monthLabel: {
-    fontSize: 16,
+  rangeDisplayPill: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 7,
+    paddingHorizontal: 12,
+    borderRadius: 14,
+    borderWidth: 1,
+  },
+  rangeIconCircle: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 8,
+  },
+  rangeTextContainer: {
+    flex: 1,
+    marginRight: 6,
+  },
+  rangeLabelText: {
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  rangeDaysSubText: {
+    fontSize: 11,
+    fontWeight: '500',
+    marginTop: 1,
+  },
+  presetScrollView: {
+    marginTop: 10,
+  },
+  presetScrollContent: {
+    flexDirection: 'row',
+    gap: 8,
+    paddingRight: 8,
+  },
+  rangePresetChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 14,
+    borderWidth: 1,
+  },
+  rangePresetChipText: {
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  rangePresetChipTextActive: {
+    fontWeight: '700',
+  },
+  customRangeDrawer: {
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
+  customDrawerHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  customDrawerTitleGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  customDrawerTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  closeDrawerBtn: {
+    padding: 4,
+  },
+  customPickersContainer: {
+    gap: 2,
+  },
+  applyRangeBtn: {
+    height: 42,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 8,
+    shadowColor: '#0284C7',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  applyRangeBtnText: {
+    color: '#FFFFFF',
+    fontSize: 13,
     fontWeight: '700',
   },
   summaryRow: {
@@ -1052,5 +1534,104 @@ const styles = StyleSheet.create({
   modalBtnText: {
     fontSize: 14,
     fontWeight: '600',
+  },
+  floatingActionDock: {
+    position: 'absolute',
+    bottom: Platform.OS === 'ios' ? 98 : 90,
+    left: 16,
+    right: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    zIndex: 999,
+  },
+  expenseFloatingBtn: {
+    flex: 1,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(239, 68, 68, 0.90)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 14,
+    marginRight: 8,
+    borderWidth: 1.2,
+    borderColor: 'rgba(255, 255, 255, 0.35)',
+    shadowColor: '#EF4444',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.45,
+    shadowRadius: 12,
+    elevation: 7,
+    overflow: 'hidden',
+  },
+  transferFloatingBtn: {
+    height: 38, // Noticeably smaller than Expense/Income 48!
+    paddingHorizontal: 13,
+    borderRadius: 19,
+    backgroundColor: 'rgba(2, 132, 199, 0.90)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 8,
+    borderWidth: 1.2,
+    borderColor: 'rgba(255, 255, 255, 0.4)',
+    shadowColor: '#0284C7',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 8,
+    elevation: 5,
+    overflow: 'hidden',
+    gap: 5,
+  },
+  incomeFloatingBtn: {
+    flex: 1,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(16, 185, 129, 0.90)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 14,
+    borderWidth: 1.2,
+    borderColor: 'rgba(255, 255, 255, 0.35)',
+    shadowColor: '#10B981',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.45,
+    shadowRadius: 12,
+    elevation: 7,
+    overflow: 'hidden',
+  },
+  btnIconCircle: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: 'rgba(255, 255, 255, 0.22)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 6,
+  },
+  expenseBtnText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '700',
+    letterSpacing: 0.2,
+  },
+  transferBtnText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  incomeBtnText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '700',
+    letterSpacing: 0.2,
+  },
+  floatingSpecularSheen: {
+    position: 'absolute',
+    top: 0,
+    left: 10,
+    right: 10,
+    height: 1.2,
   },
 });

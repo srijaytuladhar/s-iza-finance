@@ -3,6 +3,7 @@ import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Sharing from 'expo-sharing';
 import * as DocumentPicker from 'expo-document-picker';
+import { File, Paths } from 'expo-file-system';
 import * as FileSystem from 'expo-file-system/legacy';
 import { 
   Account, 
@@ -19,16 +20,43 @@ export interface Settings {
   monthlyBudget?: number;
 }
 
+export type DateFilterPreset = 'month' | '7days' | '30days' | 'year' | 'custom';
+
+export interface DateFilterConfig {
+  rangePreset: DateFilterPreset;
+  currentMonthDate: string; // ISO string
+  customStartDate: string; // "YYYY-MM-DD"
+  customEndDate: string; // "YYYY-MM-DD"
+}
+
+export const getDefaultDateFilter = (): DateFilterConfig => {
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, '0');
+  const lastDay = new Date(y, now.getMonth() + 1, 0).getDate();
+  const startStr = `${y}-${m}-01`;
+  const endStr = `${y}-${m}-${String(lastDay).padStart(2, '0')}`;
+
+  return {
+    rangePreset: 'month',
+    currentMonthDate: new Date(y, now.getMonth(), 1).toISOString(),
+    customStartDate: startStr,
+    customEndDate: endStr,
+  };
+};
+
 interface FinanceState extends FinanceData {
   settings: Settings;
+  dateFilter: DateFilterConfig;
   isLoading: boolean;
 }
 
 type FinanceAction =
-  | { type: 'LOAD_DATA'; payload: { data: FinanceData; settings: Settings } }
+  | { type: 'LOAD_DATA'; payload: { data: FinanceData; settings: Settings; dateFilter?: DateFilterConfig } }
   | { type: 'SET_LOADING'; payload: boolean }
   | { type: 'SET_DATA'; payload: FinanceData }
-  | { type: 'UPDATE_SETTINGS'; payload: Settings };
+  | { type: 'UPDATE_SETTINGS'; payload: Settings }
+  | { type: 'UPDATE_DATE_FILTER'; payload: DateFilterConfig };
 
 const initialState: FinanceState = {
   accounts: [],
@@ -40,6 +68,7 @@ const initialState: FinanceState = {
     isDarkMode: false,
     monthlyBudget: 0,
   },
+  dateFilter: getDefaultDateFilter(),
   isLoading: true,
 };
 
@@ -61,6 +90,7 @@ const FinanceContext = createContext<{
   importBackupData: () => Promise<{ success: boolean; message: string; summary?: string; pendingData?: FinanceData } | undefined>;
   confirmImport: (data: FinanceData) => Promise<void>;
   updateSettings: (settings: Settings) => Promise<void>;
+  updateDateFilter: (filter: DateFilterConfig) => Promise<void>;
 } | undefined>(undefined);
 
 // Helper function to recompute balances of all accounts dynamically
@@ -160,6 +190,7 @@ function financeReducer(state: FinanceState, action: FinanceAction): FinanceStat
         ...state,
         ...action.payload.data,
         settings: action.payload.settings,
+        dateFilter: action.payload.dateFilter || state.dateFilter,
         isLoading: false,
       };
     case 'SET_LOADING':
@@ -176,6 +207,11 @@ function financeReducer(state: FinanceState, action: FinanceAction): FinanceStat
       return {
         ...state,
         settings: action.payload,
+      };
+    case 'UPDATE_DATE_FILTER':
+      return {
+        ...state,
+        dateFilter: action.payload,
       };
     default:
       return state;
@@ -194,6 +230,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
         const categoriesStr = await AsyncStorage.getItem('categories');
         const contactsStr = await AsyncStorage.getItem('contacts');
         const settingsStr = await AsyncStorage.getItem('settings');
+        const dateFilterStr = await AsyncStorage.getItem('dashboard_date_filter');
 
         const loadedAccounts: Account[] = accountsStr ? JSON.parse(accountsStr) : [];
         const loadedTransactions: Transaction[] = transactionsStr ? JSON.parse(transactionsStr) : [];
@@ -212,6 +249,18 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
           loadedSettings.monthlyBudget = 0;
         }
 
+        let loadedDateFilter = getDefaultDateFilter();
+        if (dateFilterStr) {
+          try {
+            const parsed = JSON.parse(dateFilterStr);
+            if (parsed && parsed.rangePreset) {
+              loadedDateFilter = parsed;
+            }
+          } catch (e) {
+            console.warn('Failed to parse cached date filter:', e);
+          }
+        }
+
         // Ensure accounts have correct recomputed balances
         const recomputedAccounts = recomputeAccountBalances(loadedAccounts, loadedTransactions);
 
@@ -225,6 +274,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
               contacts: loadedContacts,
             },
             settings: loadedSettings,
+            dateFilter: loadedDateFilter,
           },
         });
       } catch (error) {
@@ -452,13 +502,15 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
         return;
       }
 
-      const fileUri = `${FileSystem.cacheDirectory}finance_backup.json`;
-      await FileSystem.writeAsStringAsync(fileUri, jsonString, {
-        encoding: FileSystem.EncodingType.UTF8,
-      });
+      const file = new File(Paths.cache, 'finance_backup.json');
+      if (file.exists) {
+        file.delete();
+      }
+      file.create();
+      file.write(jsonString);
 
       if (await Sharing.isAvailableAsync()) {
-        await Sharing.shareAsync(fileUri, {
+        await Sharing.shareAsync(file.uri, {
           mimeType: 'application/json',
           dialogTitle: 'Export Finance Data',
         });
@@ -474,7 +526,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const importBackupData = async () => {
     try {
       const result = await DocumentPicker.getDocumentAsync({
-        type: 'application/json',
+        type: ['application/json', 'text/json', 'text/plain', '*/*'],
         copyToCacheDirectory: true,
       });
 
@@ -482,11 +534,12 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
         return;
       }
 
-      const fileUri = result.assets[0].uri;
+      const asset = result.assets[0];
+      const fileUri = asset.uri;
       let fileContent = '';
 
       if (Platform.OS === 'web') {
-        const fileObj = (result.assets[0] as any).file;
+        const fileObj = (asset as any).file;
         if (fileObj && typeof fileObj.text === 'function') {
           fileContent = await fileObj.text();
         } else {
@@ -494,9 +547,52 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
           fileContent = await response.text();
         }
       } else {
-        fileContent = await FileSystem.readAsStringAsync(fileUri, {
-          encoding: FileSystem.EncodingType.UTF8,
-        });
+        let readSuccess = false;
+
+        // Strategy 1: Modern Expo 57 File API
+        try {
+          const file = new File(fileUri);
+          fileContent = await file.text();
+          if (fileContent && fileContent.trim().length > 0) {
+            readSuccess = true;
+          }
+        } catch (e1) {
+          console.warn('File.text() failed, trying fetch fallback:', e1);
+        }
+
+        // Strategy 2: React Native native fetch() on local file/content URI
+        if (!readSuccess) {
+          try {
+            const response = await fetch(fileUri);
+            fileContent = await response.text();
+            if (fileContent && fileContent.trim().length > 0) {
+              readSuccess = true;
+            }
+          } catch (e2) {
+            console.warn('fetch() fallback failed, trying legacy readAsStringAsync:', e2);
+          }
+        }
+
+        // Strategy 3: Legacy FileSystem.readAsStringAsync fallback
+        if (!readSuccess) {
+          try {
+            fileContent = await FileSystem.readAsStringAsync(fileUri, {
+              encoding: FileSystem.EncodingType.UTF8,
+            });
+            if (fileContent && fileContent.trim().length > 0) {
+              readSuccess = true;
+            }
+          } catch (e3) {
+            console.warn('Legacy readAsStringAsync failed:', e3);
+          }
+        }
+
+        if (!readSuccess || !fileContent.trim()) {
+          return {
+            success: false,
+            message: 'Unable to read the selected file. Please ensure it is a valid JSON file and accessible on your device.',
+          };
+        }
       }
 
       let parsedData: any;
@@ -534,6 +630,15 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
     dispatch({ type: 'UPDATE_SETTINGS', payload: newSettings });
   };
 
+  const updateDateFilter = async (filter: DateFilterConfig) => {
+    dispatch({ type: 'UPDATE_DATE_FILTER', payload: filter });
+    try {
+      await AsyncStorage.setItem('dashboard_date_filter', JSON.stringify(filter));
+    } catch (e) {
+      console.error('Failed to save date filter to cache:', e);
+    }
+  };
+
   return (
     <FinanceContext.Provider
       value={{
@@ -554,6 +659,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
         importBackupData,
         confirmImport,
         updateSettings,
+        updateDateFilter,
       }}
     >
       {children}

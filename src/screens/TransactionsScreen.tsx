@@ -11,18 +11,12 @@ import {
   SafeAreaView 
 } from 'react-native';
 import { useFinance } from '../context/FinanceContext';
-import { Transaction, TransactionType, Split } from '../types/finance';
+import { Transaction, TransactionType } from '../types/finance';
 import { TransactionRow } from '../components/TransactionRow';
-import { AmountInput, AmountDisplay } from '../components/AmountInput';
-import { Numpad } from '../components/Numpad';
-import { CategoryPicker } from '../components/CategoryPicker';
-import { DatePicker } from '../components/DatePicker';
-import { SplitEditor } from '../components/SplitEditor';
 import { FinanceIcon } from '../utils/iconMap';
-import { useForm, Controller } from 'react-hook-form';
-import { showAlert } from '../utils/alert';
 import { useTheme } from '../utils/theme';
 import { GlassBackground } from '../components/GlassBackground';
+import { TransactionModal } from '../components/TransactionModal';
 
 export const TransactionsScreen: React.FC = () => {
   const { 
@@ -43,25 +37,6 @@ export const TransactionsScreen: React.FC = () => {
   // Modal form states
   const [modalVisible, setModalVisible] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
-
-  // react-hook-form initialization
-  const { control, handleSubmit, reset, setValue, watch } = useForm({
-    defaultValues: {
-      type: 'Expense' as TransactionType,
-      accountId: '',
-      toAccountId: '',
-      amount: '',
-      description: '',
-      category: '',
-      date: new Date().toISOString().split('T')[0],
-      isReceivable: false,
-      contactId: '',
-      splits: [] as Split[],
-    }
-  });
-
-  const selectedType = watch('type');
-  const watchAmount = watch('amount');
 
   // Filter transactions
   const filteredTransactions = state.transactions.filter(tx => {
@@ -119,112 +94,12 @@ export const TransactionsScreen: React.FC = () => {
 
   const openAddModal = () => {
     setEditingTransaction(null);
-    const defaultAcc = state.accounts.find(a => a.isDefault)?.id || (state.accounts[0]?.id || '');
-    reset({
-      type: 'Expense',
-      accountId: defaultAcc,
-      toAccountId: '',
-      amount: '',
-      description: '',
-      category: '',
-      date: new Date().toISOString().split('T')[0],
-      isReceivable: false,
-      contactId: '',
-      splits: [],
-    });
     setModalVisible(true);
   };
 
   const openEditModal = (tx: Transaction) => {
     setEditingTransaction(tx);
-    reset({
-      type: tx.type,
-      accountId: tx.accountId,
-      toAccountId: tx.toAccountId || '',
-      amount: tx.amount.toString(),
-      description: tx.description || '',
-      category: tx.category,
-      date: tx.date.split('T')[0],
-      isReceivable: tx.isReceivable || false,
-      contactId: tx.contactId || '',
-      splits: tx.splits || [],
-    });
     setModalVisible(true);
-  };
-
-  const onSubmit = async (data: any) => {
-    const amountVal = parseFloat(data.amount);
-    if (isNaN(amountVal) || amountVal <= 0) {
-      showAlert('Validation Error', 'Please enter a valid amount greater than 0.');
-      return;
-    }
-
-    if (!data.accountId) {
-      showAlert('Validation Error', 'Please select an account.');
-      return;
-    }
-
-    if (data.type === 'Transfer') {
-      if (!data.toAccountId) {
-        showAlert('Validation Error', 'Please select destination account.');
-        return;
-      }
-      if (data.accountId === data.toAccountId) {
-        showAlert('Validation Error', 'Source and destination accounts must be different.');
-        return;
-      }
-    } else {
-      if (!data.category) {
-        showAlert('Validation Error', 'Please select a category.');
-        return;
-      }
-    }
-
-    // Prepare transaction payload
-    const txPayload: Omit<Transaction, 'id'> = {
-      accountId: data.accountId,
-      type: data.type,
-      amount: amountVal,
-      description: data.description,
-      category: data.type === 'Transfer' ? 'Transfer' : data.category,
-      date: new Date(data.date).toISOString(),
-      isReceivable: data.isReceivable,
-      ...(data.type === 'Transfer' && { toAccountId: data.toAccountId }),
-      ...(data.isReceivable && {
-        contactId: data.contactId,
-        splits: data.splits,
-      }),
-    };
-
-    try {
-      if (editingTransaction) {
-        await editTransaction({ ...txPayload, id: editingTransaction.id });
-      } else {
-        await addTransaction(txPayload);
-      }
-      setModalVisible(false);
-    } catch (e) {
-      showAlert('Error', 'Failed to save transaction: ' + e);
-    }
-  };
-
-  const handleDelete = () => {
-    if (!editingTransaction) return;
-    showAlert(
-      'Confirm Delete',
-      'Are you sure you want to delete this transaction?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Delete', 
-          style: 'destructive',
-          onPress: async () => {
-            await deleteTransaction(editingTransaction.id);
-            setModalVisible(false);
-          } 
-        }
-      ]
-    );
   };
 
   return (
@@ -381,229 +256,11 @@ export const TransactionsScreen: React.FC = () => {
       </Pressable>
 
       {/* Add/Edit Modal */}
-      <Modal
+      <TransactionModal
         visible={modalVisible}
-        animationType="slide"
-        presentationStyle="pageSheet"
-        onRequestClose={() => setModalVisible(false)}
-      >
-        <GlassBackground>
-        <SafeAreaView style={[styles.modalContainer, { backgroundColor: 'transparent' }]}>
-          <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}>
-            <Text style={[styles.modalTitle, { color: colors.text }]}>
-              {editingTransaction ? 'Edit Transaction' : 'New Transaction'}
-            </Text>
-            <View style={styles.modalHeaderButtons}>
-              {editingTransaction && (
-                <Pressable onPress={handleDelete} style={styles.deleteButton}>
-                  <FinanceIcon name="trash" size={16} color="#EF4444" />
-                </Pressable>
-              )}
-              <Pressable onPress={() => setModalVisible(false)} style={styles.closeButton}>
-                <Text style={styles.closeButtonText}>Cancel</Text>
-              </Pressable>
-              <Pressable onPress={handleSubmit(onSubmit)} style={styles.headerSaveButton}>
-                <Text style={[styles.headerSaveButtonText, { color: colors.primary }]}>Save</Text>
-              </Pressable>
-            </View>
-          </View>
-
-          <ScrollView style={styles.form} contentContainerStyle={styles.formContent}>
-            {/* Type Switcher */}
-            <View style={styles.typeSelectorContainer}>
-              <Controller
-                name="type"
-                control={control}
-                render={({ field: { value, onChange } }) => (
-                  <View style={[styles.typeTabs, { backgroundColor: colors.inputBackground }]}>
-                    {(['Expense', 'Income', 'Transfer'] as TransactionType[]).map(t => (
-                      <Pressable
-                        key={t}
-                        style={[
-                          styles.typeTab,
-                          value === t && styles.activeTypeTab,
-                          value === t && t === 'Expense' && { backgroundColor: '#EF4444' },
-                          value === t && t === 'Income' && { backgroundColor: '#10B981' },
-                          value === t && t === 'Transfer' && { backgroundColor: '#3B82F6' },
-                        ]}
-                        onPress={() => {
-                          onChange(t);
-                          setValue('category', '');
-                        }}
-                      >
-                        <Text style={[styles.typeTabText, { color: colors.textSecondary }, value === t && { color: '#FFFFFF', fontWeight: '700' }]}>
-                          {t}
-                        </Text>
-                      </Pressable>
-                    ))}
-                  </View>
-                )}
-              />
-            </View>
-
-            {/* Amount Display */}
-            <Controller
-              name="amount"
-              control={control}
-              render={({ field: { value, onChange } }) => (
-                <AmountDisplay
-                  value={value}
-                  onClear={() => onChange('')}
-                  label="Amount"
-                />
-              )}
-            />
-
-            {/* Category Picker (Fixed horizontal scroll for Expense/Income) */}
-            {selectedType !== 'Transfer' && (
-              <Controller
-                name="category"
-                control={control}
-                render={({ field: { value, onChange } }) => (
-                  <CategoryPicker
-                    value={value}
-                    onChange={onChange}
-                    type={selectedType as any}
-                  />
-                )}
-              />
-            )}
-
-            {/* Account / From Account Selector */}
-            <Text style={[styles.label, { color: colors.textSecondary }]}>{selectedType === 'Transfer' ? 'From Account' : 'Account'}</Text>
-            <Controller
-              name="accountId"
-              control={control}
-              render={({ field: { value, onChange } }) => (
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.accountsRow}>
-                  {state.accounts.map(acc => (
-                    <Pressable
-                      key={acc.id}
-                      style={[
-                        styles.accountSelectorCard,
-                        { backgroundColor: colors.card, borderColor: colors.border },
-                        value === acc.id && { backgroundColor: colors.primary, borderColor: colors.primary }
-                      ]}
-                      onPress={() => onChange(acc.id)}
-                    >
-                      <Text style={[
-                        styles.accountSelectorName,
-                        { color: colors.text },
-                        value === acc.id && { color: '#FFFFFF', fontWeight: '700' }
-                      ]}>{acc.name}</Text>
-                    </Pressable>
-                  ))}
-                </ScrollView>
-              )}
-            />
-
-            {/* To Account Selector (Only for Transfer) */}
-            {selectedType === 'Transfer' && (
-              <>
-                <Text style={[styles.label, { color: colors.textSecondary }]}>To Account</Text>
-                <Controller
-                  name="toAccountId"
-                  control={control}
-                  render={({ field: { value, onChange } }) => (
-                    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.accountsRow}>
-                      {state.accounts.map(acc => (
-                        <Pressable
-                          key={acc.id}
-                          style={[
-                            styles.accountSelectorCard,
-                            { backgroundColor: colors.card, borderColor: colors.border },
-                            value === acc.id && { backgroundColor: colors.primary, borderColor: colors.primary }
-                          ]}
-                          onPress={() => onChange(acc.id)}
-                        >
-                          <Text style={[
-                            styles.accountSelectorName,
-                            { color: colors.text },
-                            value === acc.id && { color: '#FFFFFF', fontWeight: '700' }
-                          ]}>{acc.name}</Text>
-                        </Pressable>
-                      ))}
-                    </ScrollView>
-                  )}
-                />
-              </>
-            )}
-
-            {/* Numpad for entering amount */}
-            <Controller
-              name="amount"
-              control={control}
-              render={({ field: { value, onChange } }) => (
-                <Numpad
-                  value={value}
-                  onChange={onChange}
-                />
-              )}
-            />
-
-            {/* Date Picker */}
-            <Controller
-              name="date"
-              control={control}
-              render={({ field: { value, onChange } }) => (
-                <DatePicker
-                  value={value}
-                  onChange={onChange}
-                  label="Date"
-                />
-              )}
-            />
-
-            {/* Description Input */}
-            <View style={styles.inputGroup}>
-              <Text style={[styles.label, { color: colors.textSecondary }]}>Description</Text>
-              <Controller
-                name="description"
-                control={control}
-                render={({ field: { value, onChange } }) => (
-                  <TextInput
-                    style={[styles.textInput, { backgroundColor: colors.inputBackground, borderColor: colors.border, color: colors.text }]}
-                    placeholder="e.g. Groceries, Salary, etc."
-                    placeholderTextColor={colors.textSecondary}
-                    value={value}
-                    onChangeText={onChange}
-                  />
-                )}
-              />
-            </View>
-
-            {/* Split / Receivable (Only for Expense) */}
-            {selectedType === 'Expense' && (
-              <Controller
-                name="splits"
-                control={control}
-                render={({ field: { value, onChange } }) => {
-                  const isReceivableVal = watch('isReceivable');
-                  const contactIdVal = watch('contactId');
-                  
-                  return (
-                    <SplitEditor
-                      totalAmount={parseFloat(watchAmount) || 0}
-                      splits={value}
-                      onChangeSplits={onChange}
-                      contactId={contactIdVal}
-                      onChangeContactId={(id) => setValue('contactId', id)}
-                      isReceivable={isReceivableVal}
-                      onChangeIsReceivable={(val) => setValue('isReceivable', val)}
-                    />
-                  );
-                }}
-              />
-            )}
-
-            {/* Save Button */}
-            <Pressable style={styles.saveButton} onPress={handleSubmit(onSubmit)}>
-              <Text style={styles.saveButtonText}>Save Transaction</Text>
-            </Pressable>
-          </ScrollView>
-        </SafeAreaView>
-        </GlassBackground>
-      </Modal>
+        onClose={() => setModalVisible(false)}
+        editingTransaction={editingTransaction}
+      />
     </SafeAreaView>
     </GlassBackground>
   );
