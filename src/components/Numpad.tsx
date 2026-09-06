@@ -93,7 +93,7 @@ export const Numpad: React.FC<NumpadProps> = ({
           styles.key,
           colors.glassShadow,
           {
-            backgroundColor: pressed 
+            backgroundColor: pressed
               ? (isDarkMode ? 'rgba(51, 65, 85, 0.85)' : 'rgba(226, 232, 240, 0.85)')
               : colors.glassCard,
             borderColor: colors.glassBorder,
@@ -138,7 +138,7 @@ const styles = StyleSheet.create({
   },
   key: {
     flex: 1,
-    height: 54,
+    height: 65,
     marginHorizontal: 4,
     borderRadius: 14,
     borderWidth: 1,

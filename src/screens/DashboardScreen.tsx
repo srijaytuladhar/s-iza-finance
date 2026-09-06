@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  ScrollView, 
-  Dimensions, 
-  Pressable, 
-  Modal, 
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  Dimensions,
+  Pressable,
+  Modal,
   TextInput,
   SafeAreaView,
   Platform
@@ -360,640 +360,643 @@ export const DashboardScreen: React.FC = () => {
   return (
     <GlassBackground>
       <SafeAreaView style={styles.container}>
-        <ScrollView 
-          style={styles.container} 
+        <ScrollView
+          style={styles.container}
           contentContainerStyle={styles.content}
           showsVerticalScrollIndicator={false}
         >
-        {/* SHIMMERING LIQUID GLASS BALANCE CARD */}
-        <View style={[styles.balanceCardWrapper, colors.glassShadow, { borderColor: colors.glassBorder }]}>
-          <BlurView
-            intensity={60}
-            tint={colors.blurTint}
-            style={[
-              styles.balanceCardBlur,
-              { backgroundColor: isDarkMode ? 'rgba(15, 23, 42, 0.75)' : 'rgba(255, 255, 255, 0.78)' },
-            ]}
-          >
-            {/* Top Specular Sheen */}
-            <View style={[styles.specularSheen, { backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.4)' : 'rgba(255, 255, 255, 0.9)' }]} />
-
-            <View style={styles.balanceTopRow}>
-              <Text style={[styles.balanceLabel, { color: isDarkMode ? '#94A3B8' : '#64748B' }]}>Total Net Worth</Text>
-              <View style={[styles.balanceChip, { backgroundColor: isDarkMode ? 'rgba(56, 189, 248, 0.18)' : 'rgba(2, 132, 199, 0.12)' }]}>
-                <FinanceIcon name="shield-alt" size={11} color={isDarkMode ? '#38BDF8' : '#0284C7'} />
-                <Text style={[styles.balanceChipText, { color: isDarkMode ? '#38BDF8' : '#0284C7' }]}>Live Balance</Text>
-              </View>
-            </View>
-
-            <Text style={[styles.balanceValue, { color: isDarkMode ? '#FFFFFF' : '#000000' }]}>
-              {formatNumber(totalBalance, currencySymbol)}
-            </Text>
-
-            <View style={styles.balanceFooterRow}>
-              <Text style={[styles.balanceFooterSub, { color: isDarkMode ? '#94A3B8' : '#64748B' }]}>Across {state.accounts.length} linked accounts</Text>
-            </View>
-          </BlurView>
-        </View>
-
-        {/* FROSTED LIQUID GLASS DATE RANGE FILTER JUST ABOVE INCOME & EXPENSE */}
-        <View style={[styles.dateFilterCard, colors.glassShadow, { backgroundColor: colors.glassCard, borderColor: colors.glassBorder }]}>
-          {/* Specular sheen */}
-          <View style={[styles.specularSheen, { backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.25)' : 'rgba(255, 255, 255, 0.75)' }]} />
-
-          {/* Top Bar: Nav Arrows + Date Range Display Pill */}
-          <View style={styles.dateFilterTopRow}>
-            <Pressable onPress={handlePrevPeriod} style={styles.periodArrowBtn} hitSlop={10}>
-              <FinanceIcon name="chevron-left" size={14} color={colors.textSecondary} />
-            </Pressable>
-
-            <Pressable
-              style={({ pressed }) => [
-                styles.rangeDisplayPill,
-                {
-                  backgroundColor: colors.glassInput,
-                  borderColor: isCustomExpanded ? colors.primary : colors.glassBorder,
-                  opacity: pressed ? 0.82 : 1,
-                },
+          {/* SHIMMERING LIQUID GLASS BALANCE CARD */}
+          <View style={[styles.balanceCardWrapper, colors.glassShadow, { borderColor: colors.glassBorder }]}>
+            <BlurView
+              intensity={60}
+              tint={colors.blurTint}
+              style={[
+                styles.balanceCardBlur,
+                { backgroundColor: isDarkMode ? 'rgba(15, 23, 42, 0.75)' : 'rgba(255, 255, 255, 0.78)' },
               ]}
-              onPress={() => {
-                if (rangePreset !== 'custom') {
-                  updateDateFilter({
-                    ...dateFilter,
-                    rangePreset: 'custom',
-                  });
-                }
-                setIsCustomExpanded(prev => !prev);
-              }}
             >
-              <View style={[styles.rangeIconCircle, { backgroundColor: `${colors.primary}20` }]}>
-                <FinanceIcon name="calendar-alt" size={12} color={colors.primary} />
-              </View>
-              <View style={styles.rangeTextContainer}>
-                <Text style={[styles.rangeLabelText, { color: colors.text }]} numberOfLines={1}>
-                  {formatRangeLabel()}
-                </Text>
-                <Text style={[styles.rangeDaysSubText, { color: colors.textSecondary }]}>
-                  {activeRangeDays} {activeRangeDays === 1 ? 'day' : 'days'}
-                </Text>
-              </View>
-              <FinanceIcon
-                name={isCustomExpanded ? 'chevron-up' : 'sliders-h'}
-                size={11}
-                color={isCustomExpanded ? colors.primary : colors.textSecondary}
-              />
-            </Pressable>
+              {/* Top Specular Sheen */}
+              <View style={[styles.specularSheen, { backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.4)' : 'rgba(255, 255, 255, 0.9)' }]} />
 
-            <Pressable onPress={handleNextPeriod} style={styles.periodArrowBtn} hitSlop={10}>
-              <FinanceIcon name="chevron-right" size={14} color={colors.textSecondary} />
-            </Pressable>
+              <View style={styles.balanceTopRow}>
+                <Text style={[styles.balanceLabel, { color: isDarkMode ? '#94A3B8' : '#64748B' }]}>Total Net Worth</Text>
+                <View style={[styles.balanceChip, { backgroundColor: isDarkMode ? 'rgba(56, 189, 248, 0.18)' : 'rgba(2, 132, 199, 0.12)' }]}>
+                  <FinanceIcon name="shield-alt" size={11} color={isDarkMode ? '#38BDF8' : '#0284C7'} />
+                  <Text style={[styles.balanceChipText, { color: isDarkMode ? '#38BDF8' : '#0284C7' }]}>Live Balance</Text>
+                </View>
+              </View>
+
+              <Text style={[styles.balanceValue, { color: isDarkMode ? '#FFFFFF' : '#000000' }]}>
+                {formatNumber(totalBalance, currencySymbol)}
+              </Text>
+
+              <View style={styles.balanceFooterRow}>
+                <Text style={[styles.balanceFooterSub, { color: isDarkMode ? '#94A3B8' : '#64748B' }]}>Across {state.accounts.length} linked accounts</Text>
+              </View>
+            </BlurView>
           </View>
 
-          {/* Preset Quick Filter Chips */}
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.presetScrollContent}
-            style={styles.presetScrollView}
-          >
-            {[
-              { id: 'month', label: 'This Month' },
-              { id: '7days', label: 'Last 7 Days' },
-              { id: '30days', label: 'Last 30 Days' },
-              { id: 'year', label: 'This Year' },
-              { id: 'custom', label: 'Custom Range ⚙️' },
-            ].map(p => {
-              const isSelected = rangePreset === p.id;
-              return (
-                <Pressable
-                  key={p.id}
-                  style={[
-                    styles.rangePresetChip,
-                    {
-                      backgroundColor: isSelected ? colors.primary : colors.glassInput,
-                      borderColor: isSelected ? colors.primary : colors.glassBorder,
-                    },
-                  ]}
-                  onPress={() => handleSelectPreset(p.id as RangePreset)}
-                >
-                  <Text
-                    style={[
-                      styles.rangePresetChipText,
-                      { color: isSelected ? '#FFFFFF' : colors.textSecondary },
-                      isSelected && styles.rangePresetChipTextActive,
-                    ]}
-                  >
-                    {p.label}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </ScrollView>
+          {/* FROSTED LIQUID GLASS DATE RANGE FILTER JUST ABOVE INCOME & EXPENSE */}
+          <View style={[styles.dateFilterCard, colors.glassShadow, { backgroundColor: colors.glassCard, borderColor: colors.glassBorder }]}>
+            {/* Specular sheen */}
+            <View style={[styles.specularSheen, { backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.25)' : 'rgba(255, 255, 255, 0.75)' }]} />
 
-          {/* Expandable Custom Range Drawer */}
-          {isCustomExpanded && (
-            <View style={[styles.customRangeDrawer, { borderTopColor: colors.glassBorder }]}>
-              <View style={styles.customDrawerHeader}>
-                <View style={styles.customDrawerTitleGroup}>
-                  <FinanceIcon name="calendar" size={13} color={colors.primary} />
-                  <Text style={[styles.customDrawerTitle, { color: colors.text }]}>Custom Date Range</Text>
-                </View>
-                <Pressable
-                  style={styles.closeDrawerBtn}
-                  onPress={() => setIsCustomExpanded(false)}
-                  hitSlop={8}
-                >
-                  <FinanceIcon name="times" size={12} color={colors.textSecondary} />
-                </Pressable>
-              </View>
-
-              <View style={styles.customPickersContainer}>
-                <DatePicker
-                  label="Start Date"
-                  value={customStartDate}
-                  onChange={val => {
-                    const newEnd = val > customEndDate ? val : customEndDate;
-                    updateDateFilter({
-                      ...dateFilter,
-                      rangePreset: 'custom',
-                      customStartDate: val,
-                      customEndDate: newEnd,
-                    });
-                  }}
-                />
-                <DatePicker
-                  label="End Date"
-                  value={customEndDate}
-                  onChange={val => {
-                    const newStart = val < customStartDate ? val : customStartDate;
-                    updateDateFilter({
-                      ...dateFilter,
-                      rangePreset: 'custom',
-                      customStartDate: newStart,
-                      customEndDate: val,
-                    });
-                  }}
-                />
-              </View>
+            {/* Top Bar: Nav Arrows + Date Range Display Pill */}
+            <View style={styles.dateFilterTopRow}>
+              <Pressable onPress={handlePrevPeriod} style={styles.periodArrowBtn} hitSlop={10}>
+                <FinanceIcon name="chevron-left" size={14} color={colors.textSecondary} />
+              </Pressable>
 
               <Pressable
                 style={({ pressed }) => [
-                  styles.applyRangeBtn,
-                  { backgroundColor: colors.primary, opacity: pressed ? 0.88 : 1 },
+                  styles.rangeDisplayPill,
+                  {
+                    backgroundColor: colors.glassInput,
+                    borderColor: isCustomExpanded ? colors.primary : colors.glassBorder,
+                    opacity: pressed ? 0.82 : 1,
+                  },
                 ]}
-                onPress={() => setIsCustomExpanded(false)}
+                onPress={() => {
+                  if (rangePreset !== 'custom') {
+                    updateDateFilter({
+                      ...dateFilter,
+                      rangePreset: 'custom',
+                    });
+                  }
+                  setIsCustomExpanded(prev => !prev);
+                }}
               >
-                <Text style={styles.applyRangeBtnText}>
-                  Apply Filter ({activeRangeDays} {activeRangeDays === 1 ? 'day' : 'days'})
+                <View style={[styles.rangeIconCircle, { backgroundColor: `${colors.primary}20` }]}>
+                  <FinanceIcon name="calendar-alt" size={12} color={colors.primary} />
+                </View>
+                <View style={styles.rangeTextContainer}>
+                  <Text style={[styles.rangeLabelText, { color: colors.text }]} numberOfLines={1}>
+                    {formatRangeLabel()}
+                  </Text>
+                  <Text style={[styles.rangeDaysSubText, { color: colors.textSecondary }]}>
+                    {activeRangeDays} {activeRangeDays === 1 ? 'day' : 'days'}
+                  </Text>
+                </View>
+                <FinanceIcon
+                  name={isCustomExpanded ? 'chevron-up' : 'sliders-h'}
+                  size={11}
+                  color={isCustomExpanded ? colors.primary : colors.textSecondary}
+                />
+              </Pressable>
+
+              <Pressable onPress={handleNextPeriod} style={styles.periodArrowBtn} hitSlop={10}>
+                <FinanceIcon name="chevron-right" size={14} color={colors.textSecondary} />
+              </Pressable>
+            </View>
+
+            {/* Preset Quick Filter Chips */}
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.presetScrollContent}
+              style={styles.presetScrollView}
+            >
+              {[
+                { id: 'month', label: 'This Month' },
+                { id: '7days', label: 'Last 7 Days' },
+                { id: '30days', label: 'Last 30 Days' },
+                { id: 'year', label: 'This Year' },
+                { id: 'custom', label: 'Custom Range ⚙️' },
+              ].map(p => {
+                const isSelected = rangePreset === p.id;
+                return (
+                  <Pressable
+                    key={p.id}
+                    style={[
+                      styles.rangePresetChip,
+                      {
+                        backgroundColor: isSelected ? colors.primary : colors.glassInput,
+                        borderColor: isSelected ? colors.primary : colors.glassBorder,
+                      },
+                    ]}
+                    onPress={() => handleSelectPreset(p.id as RangePreset)}
+                  >
+                    <Text
+                      style={[
+                        styles.rangePresetChipText,
+                        { color: isSelected ? '#FFFFFF' : colors.textSecondary },
+                        isSelected && styles.rangePresetChipTextActive,
+                      ]}
+                    >
+                      {p.label}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
+
+            {/* Expandable Custom Range Drawer */}
+            {isCustomExpanded && (
+              <View style={[styles.customRangeDrawer, { borderTopColor: colors.glassBorder }]}>
+                <View style={styles.customDrawerHeader}>
+                  <View style={styles.customDrawerTitleGroup}>
+                    <FinanceIcon name="calendar" size={13} color={colors.primary} />
+                    <Text style={[styles.customDrawerTitle, { color: colors.text }]}>Custom Date Range</Text>
+                  </View>
+                  <Pressable
+                    style={styles.closeDrawerBtn}
+                    onPress={() => setIsCustomExpanded(false)}
+                    hitSlop={8}
+                  >
+                    <FinanceIcon name="times" size={12} color={colors.textSecondary} />
+                  </Pressable>
+                </View>
+
+                <View style={styles.customPickersContainer}>
+                  <DatePicker
+                    label="Start Date"
+                    value={customStartDate}
+                    onChange={val => {
+                      const newEnd = val > customEndDate ? val : customEndDate;
+                      updateDateFilter({
+                        ...dateFilter,
+                        rangePreset: 'custom',
+                        customStartDate: val,
+                        customEndDate: newEnd,
+                      });
+                    }}
+                  />
+                  <DatePicker
+                    label="End Date"
+                    value={customEndDate}
+                    onChange={val => {
+                      const newStart = val < customStartDate ? val : customStartDate;
+                      updateDateFilter({
+                        ...dateFilter,
+                        rangePreset: 'custom',
+                        customStartDate: newStart,
+                        customEndDate: val,
+                      });
+                    }}
+                  />
+                </View>
+
+                <Pressable
+                  style={({ pressed }) => [
+                    styles.applyRangeBtn,
+                    { backgroundColor: colors.primary, opacity: pressed ? 0.88 : 1 },
+                  ]}
+                  onPress={() => setIsCustomExpanded(false)}
+                >
+                  <Text style={styles.applyRangeBtnText}>
+                    Apply Filter ({activeRangeDays} {activeRangeDays === 1 ? 'day' : 'days'})
+                  </Text>
+                </Pressable>
+              </View>
+            )}
+          </View>
+
+          {/* FROSTED GLASS MONTHLY SUMMARY (INCOME / EXPENSE) */}
+          <View style={styles.summaryRow}>
+            <View style={[styles.summaryCard, colors.glassShadow, { backgroundColor: colors.glassCard, borderColor: colors.glassBorder }]}>
+              <View style={styles.summaryHeader}>
+                <View style={[styles.miniIconCircle, { backgroundColor: 'rgba(16, 185, 129, 0.18)' }]}>
+                  <FinanceIcon name="arrow-up" size={12} color="#10B981" />
+                </View>
+                <Text style={[styles.summaryCardLabel, { color: colors.textSecondary }]}>Income</Text>
+              </View>
+              <Text style={[styles.summaryValue, { color: '#10B981' }]}>
+                {formatNumber(monthlyIncome, currencySymbol)}
+              </Text>
+            </View>
+
+            <View style={[styles.summaryCard, colors.glassShadow, { backgroundColor: colors.glassCard, borderColor: colors.glassBorder }]}>
+              <View style={styles.summaryHeader}>
+                <View style={[styles.miniIconCircle, { backgroundColor: 'rgba(239, 68, 68, 0.18)' }]}>
+                  <FinanceIcon name="arrow-down" size={12} color="#EF4444" />
+                </View>
+                <Text style={[styles.summaryCardLabel, { color: colors.textSecondary }]}>Expense</Text>
+              </View>
+              <Text style={[styles.summaryValue, { color: '#EF4444' }]}>
+                {formatNumber(monthlyExpense, currencySymbol)}
+              </Text>
+            </View>
+          </View>
+
+          {/* MONTHLY BUDGET CARD WITH DECREASING GLASS PROGRESS BAR */}
+          <View style={[styles.glassCard, colors.glassShadow, { backgroundColor: colors.glassCard, borderColor: colors.glassBorder }]}>
+            <View style={styles.cardHeaderRow}>
+              <View style={styles.cardTitleGroup}>
+                <View style={[styles.headerIconCircle, { backgroundColor: `${colors.primary}20` }]}>
+                  <FinanceIcon name="wallet" size={14} color={colors.primary} />
+                </View>
+                <Text style={[styles.cardTitle, { color: colors.text }]}>Monthly Budget</Text>
+              </View>
+              <Pressable
+                style={({ pressed }) => [styles.editBudgetBtn, { opacity: pressed ? 0.7 : 1 }]}
+                onPress={openBudgetModal}
+              >
+                <FinanceIcon name="pencil-alt" size={12} color={colors.primary} />
+                <Text style={[styles.editBudgetBtnText, { color: colors.primary }]}>
+                  {hasBudget ? 'Edit Limit' : 'Set Budget'}
                 </Text>
               </Pressable>
             </View>
-          )}
-        </View>
 
-        {/* FROSTED GLASS MONTHLY SUMMARY (INCOME / EXPENSE) */}
-        <View style={styles.summaryRow}>
-          <View style={[styles.summaryCard, colors.glassShadow, { backgroundColor: colors.glassCard, borderColor: colors.glassBorder }]}>
-            <View style={styles.summaryHeader}>
-              <View style={[styles.miniIconCircle, { backgroundColor: 'rgba(16, 185, 129, 0.18)' }]}>
-                <FinanceIcon name="arrow-up" size={12} color="#10B981" />
-              </View>
-              <Text style={[styles.summaryCardLabel, { color: colors.textSecondary }]}>Income</Text>
-            </View>
-            <Text style={[styles.summaryValue, { color: '#10B981' }]}>
-              {formatNumber(monthlyIncome, currencySymbol)}
-            </Text>
-          </View>
-
-          <View style={[styles.summaryCard, colors.glassShadow, { backgroundColor: colors.glassCard, borderColor: colors.glassBorder }]}>
-            <View style={styles.summaryHeader}>
-              <View style={[styles.miniIconCircle, { backgroundColor: 'rgba(239, 68, 68, 0.18)' }]}>
-                <FinanceIcon name="arrow-down" size={12} color="#EF4444" />
-              </View>
-              <Text style={[styles.summaryCardLabel, { color: colors.textSecondary }]}>Expense</Text>
-            </View>
-            <Text style={[styles.summaryValue, { color: '#EF4444' }]}>
-              {formatNumber(monthlyExpense, currencySymbol)}
-            </Text>
-          </View>
-        </View>
-
-        {/* MONTHLY BUDGET CARD WITH DECREASING GLASS PROGRESS BAR */}
-        <View style={[styles.glassCard, colors.glassShadow, { backgroundColor: colors.glassCard, borderColor: colors.glassBorder }]}>
-          <View style={styles.cardHeaderRow}>
-            <View style={styles.cardTitleGroup}>
-              <View style={[styles.headerIconCircle, { backgroundColor: `${colors.primary}20` }]}>
-                <FinanceIcon name="wallet" size={14} color={colors.primary} />
-              </View>
-              <Text style={[styles.cardTitle, { color: colors.text }]}>Monthly Budget</Text>
-            </View>
-            <Pressable
-              style={({ pressed }) => [styles.editBudgetBtn, { opacity: pressed ? 0.7 : 1 }]}
-              onPress={openBudgetModal}
-            >
-              <FinanceIcon name="pencil-alt" size={12} color={colors.primary} />
-              <Text style={[styles.editBudgetBtnText, { color: colors.primary }]}>
-                {hasBudget ? 'Edit Limit' : 'Set Budget'}
-              </Text>
-            </Pressable>
-          </View>
-
-          {hasBudget ? (
-            <View style={styles.budgetBody}>
-              <View style={styles.budgetMetricsRow}>
-                <View>
-                  <Text style={[styles.budgetSubtitle, { color: colors.textSecondary }]}>Remaining</Text>
-                  <Text style={[styles.budgetRemainingValue, { color: getBudgetColor() }]}>
-                    {formatNumber(remainingBudget, currencySymbol)}
-                  </Text>
+            {hasBudget ? (
+              <View style={styles.budgetBody}>
+                <View style={styles.budgetMetricsRow}>
+                  <View>
+                    <Text style={[styles.budgetSubtitle, { color: colors.textSecondary }]}>Remaining</Text>
+                    <Text style={[styles.budgetRemainingValue, { color: getBudgetColor() }]}>
+                      {formatNumber(remainingBudget, currencySymbol)}
+                    </Text>
+                  </View>
+                  <View style={styles.budgetRightStats}>
+                    <Text style={[styles.budgetSubDetail, { color: colors.textSecondary }]}>
+                      Limit: <Text style={{ color: colors.text, fontWeight: '600' }}>{formatNumber(monthlyBudget, currencySymbol)}</Text>
+                    </Text>
+                    <Text style={[styles.budgetSubDetail, { color: colors.textSecondary }]}>
+                      Spent: <Text style={{ color: colors.text, fontWeight: '600' }}>{formatNumber(monthlyExpense, currencySymbol)}</Text>
+                    </Text>
+                  </View>
                 </View>
-                <View style={styles.budgetRightStats}>
-                  <Text style={[styles.budgetSubDetail, { color: colors.textSecondary }]}>
-                    Limit: <Text style={{ color: colors.text, fontWeight: '600' }}>{formatNumber(monthlyBudget, currencySymbol)}</Text>
+
+                {/* Decreasing Glass Progress Bar */}
+                <View style={[styles.budgetBarTrack, { backgroundColor: colors.glassInput }]}>
+                  <View
+                    style={[
+                      styles.budgetBarFill,
+                      {
+                        width: `${percentRemaining}%`,
+                        backgroundColor: getBudgetColor(),
+                      },
+                    ]}
+                  />
+                </View>
+
+                <View style={styles.budgetFooterRow}>
+                  <Text style={[styles.budgetFooterText, { color: colors.textSecondary }]}>
+                    {percentRemaining.toFixed(0)}% budget left
                   </Text>
-                  <Text style={[styles.budgetSubDetail, { color: colors.textSecondary }]}>
-                    Spent: <Text style={{ color: colors.text, fontWeight: '600' }}>{formatNumber(monthlyExpense, currencySymbol)}</Text>
-                  </Text>
+                  {isCurrentMonth && (
+                    <Text style={[styles.budgetFooterText, { color: colors.textSecondary }]}>
+                      {isBudgetExceeded ? (
+                        <Text style={{ color: '#EF4444', fontWeight: '700' }}>
+                          Over by {formatNumber(exceededAmount, currencySymbol)}
+                        </Text>
+                      ) : (
+                        `Safe daily: ${formatNumber(dailySafeSpend, currencySymbol)}/day`
+                      )}
+                    </Text>
+                  )}
                 </View>
               </View>
+            ) : (
+              <View style={styles.emptyBudgetContainer}>
+                <Text style={[styles.emptyBudgetText, { color: colors.textSecondary }]}>
+                  Set a monthly spending limit to track your remaining budget in real-time.
+                </Text>
+                <Pressable
+                  style={[styles.setBudgetBtn, { backgroundColor: colors.primary }]}
+                  onPress={openBudgetModal}
+                >
+                  <Text style={styles.setBudgetBtnText}>+ Set Monthly Budget</Text>
+                </Pressable>
+              </View>
+            )}
+          </View>
 
-              {/* Decreasing Glass Progress Bar */}
-              <View style={[styles.budgetBarTrack, { backgroundColor: colors.glassInput }]}>
+          {/* NET CASHFLOW & SAVINGS RATE */}
+          <View style={[styles.glassCard, colors.glassShadow, { backgroundColor: colors.glassCard, borderColor: colors.glassBorder }]}>
+            <View style={styles.cardHeaderRow}>
+              <View style={styles.cardTitleGroup}>
+                <View style={[styles.headerIconCircle, { backgroundColor: isSurplus ? 'rgba(16, 185, 129, 0.18)' : 'rgba(239, 68, 68, 0.18)' }]}>
+                  <FinanceIcon name={isSurplus ? 'piggy-bank' : 'exclamation-circle'} size={14} color={isSurplus ? '#10B981' : '#EF4444'} />
+                </View>
+                <Text style={[styles.cardTitle, { color: colors.text }]}>Net Cash Flow</Text>
+              </View>
+              <View style={[styles.badge, { backgroundColor: isSurplus ? 'rgba(16, 185, 129, 0.18)' : 'rgba(239, 68, 68, 0.18)' }]}>
+                <Text style={[styles.badgeText, { color: isSurplus ? '#10B981' : '#EF4444' }]}>
+                  {isSurplus ? `+${savingsRate.toFixed(0)}% Saved` : 'Deficit'}
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.cashflowRow}>
+              <View>
+                <Text style={[styles.cashflowValue, { color: isSurplus ? '#10B981' : '#EF4444' }]}>
+                  {isSurplus ? '+' : ''}{formatNumber(netSavings, currencySymbol)}
+                </Text>
+                <Text style={[styles.cashflowSub, { color: colors.textSecondary }]}>
+                  {isSurplus ? 'Net positive savings this month' : 'Expenses exceed income'}
+                </Text>
+              </View>
+            </View>
+
+            {(monthlyIncome > 0 || monthlyExpense > 0) && (
+              <View style={[styles.ratioBarContainer, { backgroundColor: colors.glassInput }]}>
                 <View
                   style={[
-                    styles.budgetBarFill,
+                    styles.ratioSegment,
                     {
-                      width: `${percentRemaining}%`,
-                      backgroundColor: getBudgetColor(),
+                      flex: Math.max(0.01, monthlyIncome),
+                      backgroundColor: '#10B981',
+                      borderTopLeftRadius: 4,
+                      borderBottomLeftRadius: 4,
+                    },
+                  ]}
+                />
+                <View
+                  style={[
+                    styles.ratioSegment,
+                    {
+                      flex: Math.max(0.01, monthlyExpense),
+                      backgroundColor: '#EF4444',
+                      borderTopRightRadius: 4,
+                      borderBottomRightRadius: 4,
                     },
                   ]}
                 />
               </View>
+            )}
+          </View>
 
-              <View style={styles.budgetFooterRow}>
-                <Text style={[styles.budgetFooterText, { color: colors.textSecondary }]}>
-                  {percentRemaining.toFixed(0)}% budget left
-                </Text>
-                {isCurrentMonth && (
-                  <Text style={[styles.budgetFooterText, { color: colors.textSecondary }]}>
-                    {isBudgetExceeded ? (
-                      <Text style={{ color: '#EF4444', fontWeight: '700' }}>
-                        Over by {formatNumber(exceededAmount, currencySymbol)}
-                      </Text>
-                    ) : (
-                      `Safe daily: ${formatNumber(dailySafeSpend, currencySymbol)}/day`
-                    )}
+          {/* QUICK ANALYTICS METRIC TILES */}
+          <View style={styles.metricsGrid}>
+            <View style={[styles.metricTile, colors.glassShadow, { backgroundColor: colors.glassCard, borderColor: colors.glassBorder }]}>
+              <Text style={[styles.metricLabel, { color: colors.textSecondary }]}>Daily Avg</Text>
+              <Text style={[styles.metricValue, { color: colors.text }]} numberOfLines={1}>
+                {formatNumber(dailyAvgSpend, currencySymbol)}
+              </Text>
+              <Text style={[styles.metricSub, { color: colors.textSecondary }]}>Per day spend</Text>
+            </View>
+
+            <View style={[styles.metricTile, colors.glassShadow, { backgroundColor: colors.glassCard, borderColor: colors.glassBorder }]}>
+              <Text style={[styles.metricLabel, { color: colors.textSecondary }]}>Top Category</Text>
+              <Text style={[styles.metricValue, { color: topCategory?.color || colors.text }]} numberOfLines={1}>
+                {topCategory ? topCategory.name : 'None'}
+              </Text>
+              <Text style={[styles.metricSub, { color: colors.textSecondary }]}>
+                {topCategory ? `${((topCategory.amount / (monthlyExpense || 1)) * 100).toFixed(0)}% of total` : 'No expenses'}
+              </Text>
+            </View>
+
+            <View style={[styles.metricTile, colors.glassShadow, { backgroundColor: colors.glassCard, borderColor: colors.glassBorder }]}>
+              <Text style={[styles.metricLabel, { color: colors.textSecondary }]}>Activity</Text>
+              <Text style={[styles.metricValue, { color: colors.text }]} numberOfLines={1}>
+                {monthTransactions.length}
+              </Text>
+              <Text style={[styles.metricSub, { color: colors.textSecondary }]}>Transactions</Text>
+            </View>
+          </View>
+
+          {/* SPENDING BY CATEGORY WITH LIQUID BAR GRAPH & DONUT TOGGLE */}
+          <View style={[styles.glassCard, colors.glassShadow, { backgroundColor: colors.glassCard, borderColor: colors.glassBorder }]}>
+            <View style={styles.cardHeaderRow}>
+              <Text style={[styles.cardTitle, { color: colors.text }]}>Spending by Category</Text>
+              <View style={[styles.chartToggleGroup, { backgroundColor: colors.glassInput }]}>
+                <Pressable
+                  style={[
+                    styles.chartToggleBtn,
+                    chartView === 'bars' && [styles.chartToggleBtnActive, { backgroundColor: colors.primary }],
+                  ]}
+                  onPress={() => setChartView('bars')}
+                >
+                  <Text
+                    style={[
+                      styles.chartToggleBtnText,
+                      { color: chartView === 'bars' ? '#FFFFFF' : colors.textSecondary },
+                    ]}
+                  >
+                    Bars
                   </Text>
-                )}
+                </Pressable>
+                <Pressable
+                  style={[
+                    styles.chartToggleBtn,
+                    chartView === 'donut' && [styles.chartToggleBtnActive, { backgroundColor: colors.primary }],
+                  ]}
+                  onPress={() => setChartView('donut')}
+                >
+                  <Text
+                    style={[
+                      styles.chartToggleBtnText,
+                      { color: chartView === 'donut' ? '#FFFFFF' : colors.textSecondary },
+                    ]}
+                  >
+                    Donut
+                  </Text>
+                </Pressable>
               </View>
             </View>
-          ) : (
-            <View style={styles.emptyBudgetContainer}>
-              <Text style={[styles.emptyBudgetText, { color: colors.textSecondary }]}>
-                Set a monthly spending limit to track your remaining budget in real-time.
-              </Text>
-              <Pressable
-                style={[styles.setBudgetBtn, { backgroundColor: colors.primary }]}
-                onPress={openBudgetModal}
-              >
-                <Text style={styles.setBudgetBtnText}>+ Set Monthly Budget</Text>
-              </Pressable>
-            </View>
-          )}
-        </View>
 
-        {/* NET CASHFLOW & SAVINGS RATE */}
-        <View style={[styles.glassCard, colors.glassShadow, { backgroundColor: colors.glassCard, borderColor: colors.glassBorder }]}>
-          <View style={styles.cardHeaderRow}>
-            <View style={styles.cardTitleGroup}>
-              <View style={[styles.headerIconCircle, { backgroundColor: isSurplus ? 'rgba(16, 185, 129, 0.18)' : 'rgba(239, 68, 68, 0.18)' }]}>
-                <FinanceIcon name={isSurplus ? 'piggy-bank' : 'exclamation-circle'} size={14} color={isSurplus ? '#10B981' : '#EF4444'} />
+            {sortedCategories.length === 0 ? (
+              <View style={styles.emptyChart}>
+                <Text style={styles.emptyChartText}>No expenses recorded this month.</Text>
               </View>
-              <Text style={[styles.cardTitle, { color: colors.text }]}>Net Cash Flow</Text>
-            </View>
-            <View style={[styles.badge, { backgroundColor: isSurplus ? 'rgba(16, 185, 129, 0.18)' : 'rgba(239, 68, 68, 0.18)' }]}>
-              <Text style={[styles.badgeText, { color: isSurplus ? '#10B981' : '#EF4444' }]}>
-                {isSurplus ? `+${savingsRate.toFixed(0)}% Saved` : 'Deficit'}
-              </Text>
-            </View>
-          </View>
+            ) : chartView === 'bars' ? (
+              <View style={styles.barGraphContainer}>
+                {sortedCategories.map(cat => {
+                  const percentOfTotal = ((cat.amount / (monthlyExpense || 1)) * 100).toFixed(0);
+                  const barWidthPercent = ((cat.amount / maxCategoryAmount) * 100);
 
-          <View style={styles.cashflowRow}>
-            <View>
-              <Text style={[styles.cashflowValue, { color: isSurplus ? '#10B981' : '#EF4444' }]}>
-                {isSurplus ? '+' : ''}{formatNumber(netSavings, currencySymbol)}
-              </Text>
-              <Text style={[styles.cashflowSub, { color: colors.textSecondary }]}>
-                {isSurplus ? 'Net positive savings this month' : 'Expenses exceed income'}
-              </Text>
-            </View>
-          </View>
-
-          {(monthlyIncome > 0 || monthlyExpense > 0) && (
-            <View style={[styles.ratioBarContainer, { backgroundColor: colors.glassInput }]}>
-              <View
-                style={[
-                  styles.ratioSegment,
-                  {
-                    flex: Math.max(0.01, monthlyIncome),
-                    backgroundColor: '#10B981',
-                    borderTopLeftRadius: 4,
-                    borderBottomLeftRadius: 4,
-                  },
-                ]}
-              />
-              <View
-                style={[
-                  styles.ratioSegment,
-                  {
-                    flex: Math.max(0.01, monthlyExpense),
-                    backgroundColor: '#EF4444',
-                    borderTopRightRadius: 4,
-                    borderBottomRightRadius: 4,
-                  },
-                ]}
-              />
-            </View>
-          )}
-        </View>
-
-        {/* QUICK ANALYTICS METRIC TILES */}
-        <View style={styles.metricsGrid}>
-          <View style={[styles.metricTile, colors.glassShadow, { backgroundColor: colors.glassCard, borderColor: colors.glassBorder }]}>
-            <Text style={[styles.metricLabel, { color: colors.textSecondary }]}>Daily Avg</Text>
-            <Text style={[styles.metricValue, { color: colors.text }]} numberOfLines={1}>
-              {formatNumber(dailyAvgSpend, currencySymbol)}
-            </Text>
-            <Text style={[styles.metricSub, { color: colors.textSecondary }]}>Per day spend</Text>
-          </View>
-
-          <View style={[styles.metricTile, colors.glassShadow, { backgroundColor: colors.glassCard, borderColor: colors.glassBorder }]}>
-            <Text style={[styles.metricLabel, { color: colors.textSecondary }]}>Top Category</Text>
-            <Text style={[styles.metricValue, { color: topCategory?.color || colors.text }]} numberOfLines={1}>
-              {topCategory ? topCategory.name : 'None'}
-            </Text>
-            <Text style={[styles.metricSub, { color: colors.textSecondary }]}>
-              {topCategory ? `${((topCategory.amount / (monthlyExpense || 1)) * 100).toFixed(0)}% of total` : 'No expenses'}
-            </Text>
-          </View>
-
-          <View style={[styles.metricTile, colors.glassShadow, { backgroundColor: colors.glassCard, borderColor: colors.glassBorder }]}>
-            <Text style={[styles.metricLabel, { color: colors.textSecondary }]}>Activity</Text>
-            <Text style={[styles.metricValue, { color: colors.text }]} numberOfLines={1}>
-              {monthTransactions.length}
-            </Text>
-            <Text style={[styles.metricSub, { color: colors.textSecondary }]}>Transactions</Text>
-          </View>
-        </View>
-
-        {/* SPENDING BY CATEGORY WITH LIQUID BAR GRAPH & DONUT TOGGLE */}
-        <View style={[styles.glassCard, colors.glassShadow, { backgroundColor: colors.glassCard, borderColor: colors.glassBorder }]}>
-          <View style={styles.cardHeaderRow}>
-            <Text style={[styles.cardTitle, { color: colors.text }]}>Spending by Category</Text>
-            <View style={[styles.chartToggleGroup, { backgroundColor: colors.glassInput }]}>
-              <Pressable
-                style={[
-                  styles.chartToggleBtn,
-                  chartView === 'bars' && [styles.chartToggleBtnActive, { backgroundColor: colors.primary }],
-                ]}
-                onPress={() => setChartView('bars')}
-              >
-                <Text
-                  style={[
-                    styles.chartToggleBtnText,
-                    { color: chartView === 'bars' ? '#FFFFFF' : colors.textSecondary },
-                  ]}
-                >
-                  Bars
-                </Text>
-              </Pressable>
-              <Pressable
-                style={[
-                  styles.chartToggleBtn,
-                  chartView === 'donut' && [styles.chartToggleBtnActive, { backgroundColor: colors.primary }],
-                ]}
-                onPress={() => setChartView('donut')}
-              >
-                <Text
-                  style={[
-                    styles.chartToggleBtnText,
-                    { color: chartView === 'donut' ? '#FFFFFF' : colors.textSecondary },
-                  ]}
-                >
-                  Donut
-                </Text>
-              </Pressable>
-            </View>
-          </View>
-
-          {sortedCategories.length === 0 ? (
-            <View style={styles.emptyChart}>
-              <Text style={styles.emptyChartText}>No expenses recorded this month.</Text>
-            </View>
-          ) : chartView === 'bars' ? (
-            <View style={styles.barGraphContainer}>
-              {sortedCategories.map(cat => {
-                const percentOfTotal = ((cat.amount / (monthlyExpense || 1)) * 100).toFixed(0);
-                const barWidthPercent = ((cat.amount / maxCategoryAmount) * 100);
-
-                return (
-                  <View key={cat.name} style={styles.categoryBarItem}>
-                    <View style={styles.categoryBarHeader}>
-                      <View style={styles.categoryBarLeft}>
-                        <View style={[styles.categoryIconCircle, { backgroundColor: `${cat.color}25` }]}>
-                          <FinanceIcon name={cat.icon} size={13} color={cat.color} />
+                  return (
+                    <View key={cat.name} style={styles.categoryBarItem}>
+                      <View style={styles.categoryBarHeader}>
+                        <View style={styles.categoryBarLeft}>
+                          <View style={[styles.categoryIconCircle, { backgroundColor: `${cat.color}25` }]}>
+                            <FinanceIcon name={cat.icon} size={13} color={cat.color} />
+                          </View>
+                          <Text style={[styles.categoryBarName, { color: colors.text }]} numberOfLines={1}>
+                            {cat.name}
+                          </Text>
                         </View>
-                        <Text style={[styles.categoryBarName, { color: colors.text }]} numberOfLines={1}>
-                          {cat.name}
-                        </Text>
+                        <View style={styles.categoryBarRight}>
+                          <Text style={[styles.categoryBarAmount, { color: colors.text }]}>
+                            {formatNumber(cat.amount, currencySymbol)}
+                          </Text>
+                          <Text style={[styles.categoryBarPercent, { color: colors.textSecondary }]}>
+                            {percentOfTotal}%
+                          </Text>
+                        </View>
                       </View>
-                      <View style={styles.categoryBarRight}>
-                        <Text style={[styles.categoryBarAmount, { color: colors.text }]}>
-                          {formatNumber(cat.amount, currencySymbol)}
-                        </Text>
-                        <Text style={[styles.categoryBarPercent, { color: colors.textSecondary }]}>
-                          {percentOfTotal}%
-                        </Text>
+
+                      <View style={[styles.categoryBarTrack, { backgroundColor: colors.glassInput }]}>
+                        <View
+                          style={[
+                            styles.categoryBarFill,
+                            {
+                              width: `${barWidthPercent}%`,
+                              backgroundColor: cat.color,
+                            },
+                          ]}
+                        />
                       </View>
                     </View>
+                  );
+                })}
+              </View>
+            ) : (
+              <PieChart
+                data={chartData}
+                width={screenWidth - 48}
+                height={190}
+                chartConfig={{
+                  color: (opacity = 1) => isDarkMode ? `rgba(255, 255, 255, ${opacity})` : `rgba(0, 0, 0, ${opacity})`,
+                }}
+                accessor="amount"
+                backgroundColor="transparent"
+                paddingLeft="0"
+                absolute
+                hasLegend={true}
+              />
+            )}
+          </View>
 
-                    <View style={[styles.categoryBarTrack, { backgroundColor: colors.glassInput }]}>
-                      <View
-                        style={[
-                          styles.categoryBarFill,
-                          {
-                            width: `${barWidthPercent}%`,
-                            backgroundColor: cat.color,
-                          },
-                        ]}
+          {/* FROSTED GLASS RECENT TRANSACTIONS */}
+          <View style={[styles.glassCard, colors.glassShadow, { backgroundColor: colors.glassCard, borderColor: colors.glassBorder, paddingHorizontal: 0, paddingBottom: 0 }]}>
+            <Text style={[styles.cardTitle, { color: colors.text, paddingHorizontal: 16, marginBottom: 8 }]}>
+              Recent Transactions
+            </Text>
+            {recentTransactions.length === 0 ? (
+              <View style={styles.emptyRecent}>
+                <Text style={styles.emptyRecentText}>No transactions recorded yet.</Text>
+              </View>
+            ) : (
+              recentTransactions.map((tx, idx) => (
+                <TransactionRow
+                  key={tx.id}
+                  transaction={tx}
+                  isLast={idx === recentTransactions.length - 1}
+                />
+              ))
+            )}
+          </View>
+
+          {/* BUDGET EDIT MODAL */}
+          <Modal
+            visible={budgetModalVisible}
+            animationType="fade"
+            transparent
+            onRequestClose={() => setBudgetModalVisible(false)}
+          >
+            <Pressable style={styles.modalOverlay} onPress={() => setBudgetModalVisible(false)}>
+              <Pressable
+                style={[styles.modalCardContainer, colors.glassShadow, { borderColor: colors.glassBorder }]}
+                onPress={e => e.stopPropagation()}
+              >
+                <View style={styles.modalBlurWrapper}>
+                  <BlurView
+                    intensity={70}
+                    tint={colors.blurTint}
+                    style={[styles.modalBlur, { backgroundColor: colors.glassCard }]}
+                  >
+                    <View style={[styles.specularSheen, { backgroundColor: colors.glassBorderHighlight }]} />
+
+                    <Text style={[styles.modalTitle, { color: colors.text }]}>Monthly Budget Limit</Text>
+                    <Text style={[styles.modalSub, { color: colors.textSecondary }]}>
+                      Set a spending limit for each month. The dashboard bar will decrease as you make expenses.
+                    </Text>
+
+                    <View style={[styles.modalInputWrapper, { backgroundColor: colors.glassInput, borderColor: colors.glassBorder }]}>
+                      <Text style={[styles.modalCurrencyPrefix, { color: colors.primary }]}>{currencySymbol || '$'}</Text>
+                      <TextInput
+                        style={[styles.modalInput, { color: colors.text }]}
+                        placeholder="0.00"
+                        placeholderTextColor={colors.textSecondary}
+                        keyboardType="decimal-pad"
+                        value={budgetInput}
+                        onChangeText={setBudgetInput}
+                        autoFocus
                       />
                     </View>
-                  </View>
-                );
-              })}
-            </View>
-          ) : (
-            <PieChart
-              data={chartData}
-              width={screenWidth - 48}
-              height={190}
-              chartConfig={{
-                color: (opacity = 1) => isDarkMode ? `rgba(255, 255, 255, ${opacity})` : `rgba(0, 0, 0, ${opacity})`,
-              }}
-              accessor="amount"
-              backgroundColor="transparent"
-              paddingLeft="0"
-              absolute
-              hasLegend={true}
-            />
-          )}
-        </View>
 
-        {/* FROSTED GLASS RECENT TRANSACTIONS */}
-        <View style={[styles.glassCard, colors.glassShadow, { backgroundColor: colors.glassCard, borderColor: colors.glassBorder, paddingHorizontal: 0, paddingBottom: 0 }]}>
-          <Text style={[styles.cardTitle, { color: colors.text, paddingHorizontal: 16, marginBottom: 8 }]}>
-            Recent Transactions
-          </Text>
-          {recentTransactions.length === 0 ? (
-            <View style={styles.emptyRecent}>
-              <Text style={styles.emptyRecentText}>No transactions recorded yet.</Text>
-            </View>
-          ) : (
-            recentTransactions.map((tx, idx) => (
-              <TransactionRow 
-                key={tx.id} 
-                transaction={tx} 
-                isLast={idx === recentTransactions.length - 1} 
-              />
-            ))
-          )}
-        </View>
+                    <View style={styles.presetRow}>
+                      {[500, 1000, 2000, 5000].map(val => (
+                        <Pressable
+                          key={val}
+                          style={[styles.presetChip, { backgroundColor: colors.glassInput, borderColor: colors.glassBorder }]}
+                          onPress={() => {
+                            const currentVal = parseFloat(budgetInput) || 0;
+                            setBudgetInput((currentVal + val).toString());
+                          }}
+                        >
+                          <Text style={[styles.presetChipText, { color: colors.text }]}>
+                            +{val}
+                          </Text>
+                        </Pressable>
+                      ))}
+                    </View>
 
-        {/* BUDGET EDIT MODAL */}
-        <Modal
-          visible={budgetModalVisible}
-          animationType="fade"
-          transparent
-          onRequestClose={() => setBudgetModalVisible(false)}
-        >
-          <Pressable style={styles.modalOverlay} onPress={() => setBudgetModalVisible(false)}>
-            <Pressable
-              style={[styles.modalCardContainer, colors.glassShadow, { borderColor: colors.glassBorder }]}
-              onPress={e => e.stopPropagation()}
-            >
-              <View style={styles.modalBlurWrapper}>
-                <BlurView
-                  intensity={70}
-                  tint={colors.blurTint}
-                  style={[styles.modalBlur, { backgroundColor: colors.glassCard }]}
-                >
-                  <View style={[styles.specularSheen, { backgroundColor: colors.glassBorderHighlight }]} />
-
-                  <Text style={[styles.modalTitle, { color: colors.text }]}>Monthly Budget Limit</Text>
-                  <Text style={[styles.modalSub, { color: colors.textSecondary }]}>
-                    Set a spending limit for each month. The dashboard bar will decrease as you make expenses.
-                  </Text>
-
-                  <View style={[styles.modalInputWrapper, { backgroundColor: colors.glassInput, borderColor: colors.glassBorder }]}>
-                    <Text style={[styles.modalCurrencyPrefix, { color: colors.primary }]}>{currencySymbol || '$'}</Text>
-                    <TextInput
-                      style={[styles.modalInput, { color: colors.text }]}
-                      placeholder="0.00"
-                      placeholderTextColor={colors.textSecondary}
-                      keyboardType="decimal-pad"
-                      value={budgetInput}
-                      onChangeText={setBudgetInput}
-                      autoFocus
-                    />
-                  </View>
-
-                  <View style={styles.presetRow}>
-                    {[500, 1000, 2000, 5000].map(val => (
+                    <View style={styles.modalButtonsRow}>
                       <Pressable
-                        key={val}
-                        style={[styles.presetChip, { backgroundColor: colors.glassInput, borderColor: colors.glassBorder }]}
-                        onPress={() => setBudgetInput(val.toString())}
+                        style={[styles.modalBtn, { borderColor: colors.glassBorder, borderWidth: 1 }]}
+                        onPress={() => setBudgetModalVisible(false)}
                       >
-                        <Text style={[styles.presetChipText, { color: colors.text }]}>
-                          +{val}
-                        </Text>
+                        <Text style={[styles.modalBtnText, { color: colors.textSecondary }]}>Cancel</Text>
                       </Pressable>
-                    ))}
-                  </View>
-
-                  <View style={styles.modalButtonsRow}>
-                    <Pressable
-                      style={[styles.modalBtn, { borderColor: colors.glassBorder, borderWidth: 1 }]}
-                      onPress={() => setBudgetModalVisible(false)}
-                    >
-                      <Text style={[styles.modalBtnText, { color: colors.textSecondary }]}>Cancel</Text>
-                    </Pressable>
-                    <Pressable
-                      style={[styles.modalBtn, { backgroundColor: colors.primary }]}
-                      onPress={handleSaveBudget}
-                    >
-                      <Text style={[styles.modalBtnText, { color: '#FFFFFF', fontWeight: '700' }]}>Save Budget</Text>
-                    </Pressable>
-                  </View>
-                </BlurView>
-              </View>
+                      <Pressable
+                        style={[styles.modalBtn, { backgroundColor: colors.primary }]}
+                        onPress={handleSaveBudget}
+                      >
+                        <Text style={[styles.modalBtnText, { color: '#FFFFFF', fontWeight: '700' }]}>Save Budget</Text>
+                      </Pressable>
+                    </View>
+                  </BlurView>
+                </View>
+              </Pressable>
             </Pressable>
+          </Modal>
+        </ScrollView>
+
+        {/* FLOATING ACTION BUTTONS DOCK: Expense, Transfer, Income */}
+        <View style={styles.floatingActionDock}>
+          {/* EXPENSE BUTTON */}
+          <Pressable
+            style={({ pressed }) => [
+              styles.expenseFloatingBtn,
+              { opacity: pressed ? 0.88 : 0.75, transform: [{ scale: pressed ? 0.96 : 1 }] },
+            ]}
+            onPress={() => handleOpenTransaction('Expense')}
+          >
+            <View style={[styles.floatingSpecularSheen, { backgroundColor: 'rgba(255, 255, 255, 0.45)' }]} />
+            <View style={styles.btnIconCircle}>
+              <FinanceIcon name="arrow-down" size={12} color="#FFFFFF" />
+            </View>
+            <Text style={styles.expenseBtnText}>Expense</Text>
           </Pressable>
-        </Modal>
-      </ScrollView>
 
-      {/* FLOATING ACTION BUTTONS DOCK: Expense, Transfer, Income */}
-      <View style={styles.floatingActionDock}>
-        {/* EXPENSE BUTTON */}
-        <Pressable
-          style={({ pressed }) => [
-            styles.expenseFloatingBtn,
-            { opacity: pressed ? 0.88 : 1, transform: [{ scale: pressed ? 0.96 : 1 }] },
-          ]}
-          onPress={() => handleOpenTransaction('Expense')}
-        >
-          <View style={[styles.floatingSpecularSheen, { backgroundColor: 'rgba(255, 255, 255, 0.45)' }]} />
-          <View style={styles.btnIconCircle}>
-            <FinanceIcon name="arrow-down" size={12} color="#FFFFFF" />
-          </View>
-          <Text style={styles.expenseBtnText}>Expense</Text>
-        </Pressable>
+          {/* TRANSFER BUTTON (A bit smaller) */}
+          <Pressable
+            style={({ pressed }) => [
+              styles.transferFloatingBtn,
+              { opacity: pressed ? 0.88 : 0.75, transform: [{ scale: pressed ? 0.95 : 1 }] },
+            ]}
+            onPress={() => handleOpenTransaction('Transfer')}
+          >
+            <View style={[styles.floatingSpecularSheen, { backgroundColor: 'rgba(255, 255, 255, 0.45)' }]} />
+            <FinanceIcon name="exchange-alt" size={13} color="#FFFFFF" />
+            <Text style={styles.transferBtnText}>Transfer</Text>
+          </Pressable>
 
-        {/* TRANSFER BUTTON (A bit smaller) */}
-        <Pressable
-          style={({ pressed }) => [
-            styles.transferFloatingBtn,
-            { opacity: pressed ? 0.88 : 1, transform: [{ scale: pressed ? 0.95 : 1 }] },
-          ]}
-          onPress={() => handleOpenTransaction('Transfer')}
-        >
-          <View style={[styles.floatingSpecularSheen, { backgroundColor: 'rgba(255, 255, 255, 0.45)' }]} />
-          <FinanceIcon name="exchange-alt" size={13} color="#FFFFFF" />
-          <Text style={styles.transferBtnText}>Transfer</Text>
-        </Pressable>
+          {/* INCOME BUTTON */}
+          <Pressable
+            style={({ pressed }) => [
+              styles.incomeFloatingBtn,
+              { opacity: pressed ? 0.88 : 0.75, transform: [{ scale: pressed ? 0.96 : 1 }] },
+            ]}
+            onPress={() => handleOpenTransaction('Income')}
+          >
+            <View style={[styles.floatingSpecularSheen, { backgroundColor: 'rgba(255, 255, 255, 0.45)' }]} />
+            <View style={styles.btnIconCircle}>
+              <FinanceIcon name="arrow-up" size={12} color="#FFFFFF" />
+            </View>
+            <Text style={styles.incomeBtnText}>Income</Text>
+          </Pressable>
+        </View>
 
-        {/* INCOME BUTTON */}
-        <Pressable
-          style={({ pressed }) => [
-            styles.incomeFloatingBtn,
-            { opacity: pressed ? 0.88 : 1, transform: [{ scale: pressed ? 0.96 : 1 }] },
-          ]}
-          onPress={() => handleOpenTransaction('Income')}
-        >
-          <View style={[styles.floatingSpecularSheen, { backgroundColor: 'rgba(255, 255, 255, 0.45)' }]} />
-          <View style={styles.btnIconCircle}>
-            <FinanceIcon name="arrow-up" size={12} color="#FFFFFF" />
-          </View>
-          <Text style={styles.incomeBtnText}>Income</Text>
-        </Pressable>
-      </View>
-
-      {/* TRANSACTION MODAL */}
-      <TransactionModal
-        visible={txModalVisible}
-        initialType={txModalType}
-        onClose={() => setTxModalVisible(false)}
-      />
+        {/* TRANSACTION MODAL */}
+        <TransactionModal
+          visible={txModalVisible}
+          initialType={txModalType}
+          onClose={() => setTxModalVisible(false)}
+        />
       </SafeAreaView>
     </GlassBackground>
   );

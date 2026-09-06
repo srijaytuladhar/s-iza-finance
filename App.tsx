@@ -1,13 +1,19 @@
 import React from 'react';
 import { StatusBar } from 'expo-status-bar';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { NavigationContainer } from '@react-navigation/native';
 import { FinanceProvider, useFinance } from './src/context/FinanceContext';
 import { TabNavigator } from './src/navigation/TabNavigator';
-import { ActivityIndicator, View, StyleSheet } from 'react-native';
+import { ActivityIndicator, View, StyleSheet, LogBox } from 'react-native';
+
+import { getThemeColors } from './src/utils/theme';
+
+// Ignore all log notifications (warnings will still be logged to the console, but won't show toasts)
+LogBox.ignoreAllLogs();
 
 function MainApp() {
   const { state } = useFinance();
+  const colors = getThemeColors(state.settings.isDarkMode);
 
   if (state.isLoading) {
     return (
@@ -19,10 +25,15 @@ function MainApp() {
 
   return (
     <SafeAreaProvider>
-      <NavigationContainer>
-        <TabNavigator />
-        <StatusBar style="auto" />
-      </NavigationContainer>
+      <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
+        <NavigationContainer>
+          <TabNavigator />
+          <StatusBar 
+            style={state.settings.isDarkMode ? 'light' : 'dark'} 
+            backgroundColor={colors.background} 
+          />
+        </NavigationContainer>
+      </SafeAreaView>
     </SafeAreaProvider>
   );
 }

@@ -1,13 +1,13 @@
 import React, { useEffect } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  Pressable, 
-  Modal, 
-  TextInput, 
-  ScrollView, 
-  SafeAreaView 
+import {
+  View,
+  Text,
+  StyleSheet,
+  Pressable,
+  Modal,
+  TextInput,
+  ScrollView,
+  SafeAreaView
 } from 'react-native';
 import { useFinance } from '../context/FinanceContext';
 import { Transaction, TransactionType } from '../types/finance';
@@ -35,11 +35,11 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
   initialType = 'Expense',
   editingTransaction,
 }) => {
-  const { 
-    state, 
-    addTransaction, 
-    editTransaction, 
-    deleteTransaction 
+  const {
+    state,
+    addTransaction,
+    editTransaction,
+    deleteTransaction
   } = useFinance();
   const { colors } = useTheme();
 
@@ -156,13 +156,13 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
       'Are you sure you want to delete this transaction?',
       [
         { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Delete', 
+        {
+          text: 'Delete',
           style: 'destructive',
           onPress: async () => {
             await deleteTransaction(editingTransaction.id);
             onClose();
-          } 
+          }
         }
       ]
     );
@@ -270,7 +270,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                       style={[
                         styles.accountSelectorCard,
                         { backgroundColor: colors.card, borderColor: colors.border },
-                        value === acc.id && { backgroundColor: colors.primary, borderColor: colors.primary }
+                        value === acc.id && { backgroundColor: acc.color || colors.primary, borderColor: acc.color || colors.primary, opacity: 0.65 }
                       ]}
                       onPress={() => onChange(acc.id)}
                     >
@@ -300,7 +300,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                           style={[
                             styles.accountSelectorCard,
                             { backgroundColor: colors.card, borderColor: colors.border },
-                            value === acc.id && { backgroundColor: colors.primary, borderColor: colors.primary }
+                            value === acc.id && { backgroundColor: acc.color || colors.primary, borderColor: acc.color || colors.primary, opacity: 0.65 }
                           ]}
                           onPress={() => onChange(acc.id)}
                         >
@@ -368,7 +368,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                 render={({ field: { value, onChange } }) => {
                   const isReceivableVal = watch('isReceivable');
                   const contactIdVal = watch('contactId');
-                  
+
                   return (
                     <SplitEditor
                       totalAmount={parseFloat(watchAmount) || 0}
