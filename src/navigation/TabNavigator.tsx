@@ -4,6 +4,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { BlurView } from 'expo-blur';
 import { DashboardScreen } from '../screens/DashboardScreen';
+import { StatisticsScreen } from '../screens/StatisticsScreen';
 import { TransactionsScreen } from '../screens/TransactionsScreen';
 import { AccountsScreen } from '../screens/AccountsScreen';
 import { CategoriesScreen } from '../screens/CategoriesScreen';
@@ -61,7 +62,8 @@ export function TabNavigator() {
         headerShown: false,
         tabBarIcon: ({ color, size, focused }) => {
           let iconName = 'question-circle';
-          if (route.name === 'Dashboard') iconName = 'chart-pie';
+          if (route.name === 'Dashboard') iconName = 'home';
+          else if (route.name === 'Statistics') iconName = 'chart-pie';
           else if (route.name === 'Transactions') iconName = 'file-invoice-dollar';
           else if (route.name === 'Accounts') iconName = 'university';
           else if (route.name === 'Categories') iconName = 'tags';
@@ -69,7 +71,7 @@ export function TabNavigator() {
 
           return (
             <View style={[styles.iconWrapper, focused && styles.focusedIconWrapper]}>
-              <FinanceIcon name={iconName} size={size - 2} color={color} />
+              <FinanceIcon name={iconName} size={size - 3} color={color} />
             </View>
           );
         },
@@ -97,13 +99,14 @@ export function TabNavigator() {
           },
         ],
         tabBarLabelStyle: {
-          fontSize: 10,
+          fontSize: 9.5,
           fontWeight: '600',
           marginBottom: 4,
         },
       })}
     >
       <Tab.Screen name="Dashboard" component={DashboardScreen} />
+      <Tab.Screen name="Statistics" component={StatisticsScreen} />
       <Tab.Screen name="Transactions" component={TransactionsScreen} />
       <Tab.Screen name="Accounts" component={AccountsScreen} />
       <Tab.Screen name="Categories" component={CategoriesScreen} />
@@ -120,20 +123,21 @@ const styles = StyleSheet.create({
   tabBar: {
     position: 'absolute',
     bottom: Platform.OS === 'ios' ? 24 : 16,
-    left: 16,
-    right: 16,
+    left: 12,
+    right: 12,
     height: 64,
     borderRadius: 32,
     borderWidth: 1.2,
     paddingBottom: 4,
     paddingTop: 6,
+    paddingHorizontal: 4,
     elevation: 8,
     backgroundColor: 'transparent',
   },
   iconWrapper: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     justifyContent: 'center',
     alignItems: 'center',
   },

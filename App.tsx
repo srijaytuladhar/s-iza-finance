@@ -30,7 +30,6 @@ function MainApp() {
           <TabNavigator />
           <StatusBar 
             style={state.settings.isDarkMode ? 'light' : 'dark'} 
-            backgroundColor={colors.background} 
           />
         </NavigationContainer>
       </SafeAreaView>

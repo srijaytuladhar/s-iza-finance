@@ -26,6 +26,7 @@ export interface TransactionModalProps {
   visible: boolean;
   onClose: () => void;
   initialType?: TransactionType;
+  initialCategory?: string;
   editingTransaction?: Transaction | null;
 }
 
@@ -33,6 +34,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
   visible,
   onClose,
   initialType = 'Expense',
+  initialCategory,
   editingTransaction,
 }) => {
   const {
@@ -50,7 +52,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
       toAccountId: '',
       amount: '',
       description: '',
-      category: '',
+      category: initialCategory || '',
       date: new Date().toISOString().split('T')[0],
       isReceivable: false,
       contactId: '',
@@ -84,7 +86,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
           toAccountId: '',
           amount: '',
           description: '',
-          category: '',
+          category: initialCategory || '',
           date: new Date().toISOString().split('T')[0],
           isReceivable: false,
           contactId: '',
@@ -92,7 +94,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
         });
       }
     }
-  }, [visible, editingTransaction, initialType]);
+  }, [visible, editingTransaction, initialType, initialCategory]);
 
   const onSubmit = async (data: any) => {
     const amountVal = parseFloat(data.amount);

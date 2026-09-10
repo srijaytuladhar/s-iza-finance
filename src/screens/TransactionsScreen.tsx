@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   View, 
   Text, 
@@ -18,7 +18,7 @@ import { useTheme } from '../utils/theme';
 import { GlassBackground } from '../components/GlassBackground';
 import { TransactionModal } from '../components/TransactionModal';
 
-export const TransactionsScreen: React.FC = () => {
+export const TransactionsScreen: React.FC<{ route?: any; navigation?: any }> = ({ route, navigation }) => {
   const { 
     state, 
     addTransaction, 
@@ -33,6 +33,18 @@ export const TransactionsScreen: React.FC = () => {
   const [filterCategory, setFilterCategory] = useState('');
   const [filterType, setFilterType] = useState<TransactionType | ''>('');
   const [showFilters, setShowFilters] = useState(false);
+
+  // Sync route params when navigated with filter parameters
+  useEffect(() => {
+    if (route?.params?.filterCategory) {
+      setFilterCategory(route.params.filterCategory);
+      setShowFilters(true);
+    }
+    if (route?.params?.filterType) {
+      setFilterType(route.params.filterType);
+      setShowFilters(true);
+    }
+  }, [route?.params?.filterCategory, route?.params?.filterType]);
 
   // Modal form states
   const [modalVisible, setModalVisible] = useState(false);
