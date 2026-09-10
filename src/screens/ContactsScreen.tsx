@@ -59,17 +59,21 @@ export const ContactsScreen: React.FC = () => {
     let weOwe = 0;
 
     state.transactions.forEach(tx => {
-      if (tx.isReceivable && tx.contactId === contactId) {
-        if (tx.type === 'Expense') {
-          if (tx.splits && tx.splits.length > 0) {
-            tx.splits.forEach(s => {
-              if (s.contactId === contactId && !s.isSettled) {
-                owedToUs += s.amount;
-              }
-            });
-          } else {
-            owedToUs += tx.amount;
+      if (!tx.isReceivable) return;
+
+      if (tx.splits && tx.splits.length > 0) {
+        tx.splits.forEach(s => {
+          if (s.contactId === contactId && !s.isSettled) {
+            if (tx.type === 'Expense') {
+              owedToUs += s.amount;
+            } else if (tx.type === 'Income') {
+              weOwe += s.amount;
+            }
           }
+        });
+      } else if (tx.contactId === contactId) {
+        if (tx.type === 'Expense') {
+          owedToUs += tx.amount;
         } else if (tx.type === 'Income') {
           weOwe += tx.amount;
         }

@@ -343,6 +343,52 @@ export const StatisticsScreen: React.FC = () => {
     legendFontSize: 12,
   }));
 
+  // Calculate Receivables per contact (pending unsettled amounts)
+  interface ContactReceivable {
+    contactId: string;
+    contactName: string;
+    amount: number;
+  }
+
+  const contactReceivablesMap: Record<string, number> = {};
+
+  state.transactions.forEach(tx => {
+    if (!tx.isReceivable) return;
+
+    if (tx.splits && tx.splits.length > 0) {
+      tx.splits.forEach(s => {
+        if (!s.isSettled && s.amount > 0 && s.contactId && state.contacts.some(c => c.id === s.contactId)) {
+          if (tx.type === 'Expense') {
+            contactReceivablesMap[s.contactId] = (contactReceivablesMap[s.contactId] || 0) + s.amount;
+          } else if (tx.type === 'Income') {
+            contactReceivablesMap[s.contactId] = (contactReceivablesMap[s.contactId] || 0) - s.amount;
+          }
+        }
+      });
+    } else if (tx.contactId && state.contacts.some(c => c.id === tx.contactId)) {
+      const isSettled = tx.splits?.some(s => s.contactId === tx.contactId && s.isSettled);
+      if (!isSettled) {
+        if (tx.type === 'Expense') {
+          contactReceivablesMap[tx.contactId] = (contactReceivablesMap[tx.contactId] || 0) + tx.amount;
+        } else if (tx.type === 'Income') {
+          contactReceivablesMap[tx.contactId] = (contactReceivablesMap[tx.contactId] || 0) - tx.amount;
+        }
+      }
+    }
+  });
+
+  const contactReceivablesList: ContactReceivable[] = state.contacts
+    .map(contact => ({
+      contactId: contact.id,
+      contactName: contact.name,
+      amount: contactReceivablesMap[contact.id] || 0,
+    }))
+    .filter(c => c.amount > 0)
+    .sort((a, b) => b.amount - a.amount);
+
+  const totalReceivablesAmount = contactReceivablesList.reduce((sum, c) => sum + c.amount, 0);
+  const maxReceivableAmount = contactReceivablesList.length > 0 ? contactReceivablesList[0].amount : 1;
+
   const recentTransactions = [...state.transactions]
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
     .slice(0, 5);
@@ -836,6 +882,77 @@ export const StatisticsScreen: React.FC = () => {
                 absolute
                 hasLegend={true}
               />
+            )}
+          </View>
+
+          {/* PENDING RECEIVABLES BAR GRAPH */}
+          <View style={[styles.glassCard, colors.glassShadow, { backgroundColor: colors.glassCard, borderColor: colors.glassBorder }]}>
+            <View style={styles.cardHeaderRow}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <FinanceIcon name="hand-holding-usd" size={16} color="#38BDF8" />
+                <Text style={[styles.cardTitle, { color: colors.text }]}>Pending Receivables</Text>
+              </View>
+              {totalReceivablesAmount > 0 && (
+                <View style={[styles.balanceChip, { backgroundColor: isDarkMode ? 'rgba(56, 189, 248, 0.18)' : 'rgba(2, 132, 199, 0.12)' }]}>
+                  <Text style={[styles.balanceChipText, { color: isDarkMode ? '#38BDF8' : '#0284C7', fontWeight: '700' }]}>
+                    {formatNumber(totalReceivablesAmount, currencySymbol)}
+                  </Text>
+                </View>
+              )}
+            </View>
+
+            {contactReceivablesList.length === 0 ? (
+              <View style={styles.emptyChart}>
+                <FinanceIcon name="check-circle" size={24} color="#10B981" style={{ marginBottom: 6, alignSelf: 'center' }} />
+                <Text style={styles.emptyChartText}>No pending receivables.</Text>
+                <Text style={{ fontSize: 11, color: colors.textSecondary, textAlign: 'center', marginTop: 2 }}>
+                  All split bills and shared expenses are settled!
+                </Text>
+              </View>
+            ) : (
+              <View style={styles.barGraphContainer}>
+                {contactReceivablesList.map((item, idx) => {
+                  const percentOfTotal = ((item.amount / (totalReceivablesAmount || 1)) * 100).toFixed(0);
+                  const barWidthPercent = ((item.amount / maxReceivableAmount) * 100);
+                  const contactPalette = ['#38BDF8', '#818CF8', '#A78BFA', '#F472B6', '#FB923C', '#34D399'];
+                  const barColor = contactPalette[idx % contactPalette.length];
+
+                  return (
+                    <View key={item.contactId} style={styles.categoryBarItem}>
+                      <View style={styles.categoryBarHeader}>
+                        <View style={styles.categoryBarLeft}>
+                          <View style={[styles.categoryIconCircle, { backgroundColor: `${barColor}25` }]}>
+                            <FinanceIcon name="user" size={12} color={barColor} />
+                          </View>
+                          <Text style={[styles.categoryBarName, { color: colors.text }]} numberOfLines={1}>
+                            {item.contactName}
+                          </Text>
+                        </View>
+                        <View style={styles.categoryBarRight}>
+                          <Text style={[styles.categoryBarAmount, { color: colors.text }]}>
+                            {formatNumber(item.amount, currencySymbol)}
+                          </Text>
+                          <Text style={[styles.categoryBarPercent, { color: colors.textSecondary }]}>
+                            {percentOfTotal}%
+                          </Text>
+                        </View>
+                      </View>
+
+                      <View style={[styles.categoryBarTrack, { backgroundColor: colors.glassInput }]}>
+                        <View
+                          style={[
+                            styles.categoryBarFill,
+                            {
+                              width: `${barWidthPercent}%`,
+                              backgroundColor: barColor,
+                            },
+                          ]}
+                        />
+                      </View>
+                    </View>
+                  );
+                })}
+              </View>
             )}
           </View>
 

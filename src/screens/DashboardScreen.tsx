@@ -10,6 +10,7 @@ import {
   Platform,
 } from 'react-native';
 import { BlurView } from 'expo-blur';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useFinance } from '../context/FinanceContext';
 import { TransactionType, Category } from '../types/finance';
 import { formatNumber } from '../utils/format';
@@ -18,6 +19,31 @@ import { GlassBackground } from '../components/GlassBackground';
 import { TransactionModal } from '../components/TransactionModal';
 import { TransactionRow } from '../components/TransactionRow';
 import { useTheme } from '../utils/theme';
+
+const getGradientStops = (hex: string): [string, string] => {
+  if (!hex || !hex.startsWith('#')) return ['#0284C7', '#1E3A8A'];
+  let c = hex.replace('#', '');
+  if (c.length === 3) c = c.split('').map(x => x + x).join('');
+  const num = parseInt(c, 16);
+  if (isNaN(num)) return ['#0284C7', '#1E3A8A'];
+  const r = (num >> 16) & 255;
+  const g = (num >> 8) & 255;
+  const b = num & 255;
+
+  // Stop 1: Lighter / vibrant top-left
+  const r1 = Math.min(255, Math.floor(r * 1.18));
+  const g1 = Math.min(255, Math.floor(g * 1.18));
+  const b1 = Math.min(255, Math.floor(b * 1.18));
+  const stop1 = `rgb(${r1}, ${g1}, ${b1})`;
+
+  // Stop 2: Deeper, richer base tone
+  const r2 = Math.floor(r * 0.62);
+  const g2 = Math.floor(g * 0.62);
+  const b2 = Math.floor(b * 0.70);
+  const stop2 = `rgb(${r2}, ${g2}, ${b2})`;
+
+  return [stop1, stop2];
+};
 
 const screenWidth = Dimensions.get('window').width;
 const GRID_GAP = 12;
@@ -197,6 +223,135 @@ export const DashboardScreen: React.FC<{ navigation?: any }> = ({ navigation }) 
               </View>
             </BlurView>
           </View>
+
+          {/* ACCOUNTS HORIZONTAL SCROLL SECTION */}
+          <View style={styles.sectionHeader}>
+            <View style={styles.sectionTitleRow}>
+              <Text style={[styles.sectionTitle, { color: colors.text }]}>
+                Accounts
+              </Text>
+              <View style={[styles.countBadge, { backgroundColor: colors.primaryLight }]}>
+                <Text style={[styles.countBadgeText, { color: colors.primary }]}>
+                  {state.accounts.length}
+                </Text>
+              </View>
+            </View>
+
+            <Pressable
+              onPress={() => navigation?.navigate?.('Accounts')}
+              style={({ pressed }) => [{ opacity: pressed ? 0.6 : 1 }]}
+            >
+              <Text style={[styles.seeAllText, { color: colors.primary }]}>
+                Manage
+              </Text>
+            </Pressable>
+          </View>
+
+          {state.accounts.length === 0 ? (
+            <View style={[styles.emptyAccountsCard, colors.glassShadow, { backgroundColor: colors.glassCard, borderColor: colors.glassBorder }]}>
+              <FinanceIcon name="university" size={28} color={colors.textSecondary} />
+              <Text style={[styles.emptyTitle, { color: colors.text }]}>No accounts linked</Text>
+              <Pressable
+                style={[styles.emptyButton, { backgroundColor: colors.primary }]}
+                onPress={() => navigation?.navigate?.('Accounts')}
+              >
+                <Text style={styles.emptyButtonText}>Add Account</Text>
+              </Pressable>
+            </View>
+          ) : (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.accountsScrollContent}
+              style={styles.accountsScrollView}
+            >
+              {state.accounts.map(acc => {
+                const accColor = acc.color || '#38BDF8';
+                const [stop1, stop2] = getGradientStops(accColor);
+                const getAccIcon = (type: string) => {
+                  switch (type) {
+                    case 'Bank': return 'university';
+                    case 'Wallet': return 'wallet';
+                    case 'Cash': return 'money-bill-wave';
+                    default: return 'credit-card';
+                  }
+                };
+
+                return (
+                  <View
+                    key={acc.id}
+                    style={[
+                      styles.horizontalAccountPressable,
+                      {
+                        shadowColor: accColor,
+                      },
+                    ]}
+                  >
+                    <LinearGradient
+                      colors={[stop1, stop2]}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 1 }}
+                      style={styles.horizontalAccountCard}
+                    >
+                      {/* Top specular reflection */}
+                      <View style={styles.cardSheen} />
+
+                      {/* Ambient glowing orb in card */}
+                      <View style={styles.cardAmbientOrb} />
+
+                      {/* Top row: Icon + Name + Default Pill */}
+                      <View style={styles.accCardTopRow}>
+                        <View style={styles.accIconCircle}>
+                          <FinanceIcon name={getAccIcon(acc.type)} size={16} color="#FFFFFF" />
+                        </View>
+                        <View style={styles.accNameCol}>
+                          <Text style={styles.accNameText} numberOfLines={1}>
+                            {acc.name}
+                          </Text>
+                          <Text style={styles.accTypeText}>
+                            {acc.type}
+                          </Text>
+                        </View>
+                        {acc.isDefault && (
+                          <View style={styles.defaultBadge}>
+                            <Text style={styles.defaultBadgeText}>Default</Text>
+                          </View>
+                        )}
+                      </View>
+
+                      {/* Bottom row: Balance */}
+                      <View style={styles.accBalanceRow}>
+                        <Text style={styles.accBalanceLabel}>
+                          Current Balance
+                        </Text>
+                        <Text style={styles.accBalanceValue} numberOfLines={1}>
+                          {formatNumber(acc.balance, currencySymbol)}
+                        </Text>
+                      </View>
+                    </LinearGradient>
+                  </View>
+                );
+              })}
+
+              {/* Add Account Shortcut Card */}
+              <Pressable
+                style={({ pressed }) => [
+                  styles.addAccountCard,
+                  {
+                    backgroundColor: colors.glassInput,
+                    borderColor: colors.glassBorder,
+                    opacity: pressed ? 0.7 : 1,
+                  },
+                ]}
+                onPress={() => navigation?.navigate?.('Accounts')}
+              >
+                <View style={[styles.addAccountIconCircle, { backgroundColor: colors.primaryLight }]}>
+                  <FinanceIcon name="plus" size={16} color={colors.primary} />
+                </View>
+                <Text style={[styles.addAccountLabel, { color: colors.text }]}>Add Account</Text>
+              </Pressable>
+            </ScrollView>
+          )}
 
           {/* EXPENSE CATEGORIES SECTION HEADER */}
           <View style={styles.sectionHeader}>
@@ -576,6 +731,134 @@ const styles = StyleSheet.create({
   seeAllText: {
     fontSize: 13,
     fontWeight: '600',
+  },
+  // ACCOUNTS HORIZONTAL SCROLL
+  accountsScrollView: {
+    marginBottom: 24,
+    marginHorizontal: -HORIZONTAL_PADDING,
+  },
+  accountsScrollContent: {
+    paddingHorizontal: HORIZONTAL_PADDING,
+    paddingVertical: 6,
+    gap: 12,
+  },
+  horizontalAccountPressable: {
+    borderRadius: 24,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.38,
+    shadowRadius: 14,
+    elevation: 8,
+  },
+  horizontalAccountCard: {
+    width: 250,
+    minHeight: 132,
+    padding: 18,
+    borderRadius: 24,
+    borderWidth: 1.2,
+    borderColor: 'rgba(255, 255, 255, 0.28)',
+    position: 'relative',
+    overflow: 'hidden',
+    justifyContent: 'space-between',
+  },
+  cardAmbientOrb: {
+    position: 'absolute',
+    right: -25,
+    bottom: -25,
+    width: 105,
+    height: 105,
+    borderRadius: 55,
+    backgroundColor: 'rgba(255, 255, 255, 0.12)',
+  },
+  accCardTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 14,
+  },
+  accIconCircle: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: 'rgba(255, 255, 255, 0.22)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.35)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 10,
+  },
+  accNameCol: {
+    flex: 1,
+  },
+  accNameText: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    letterSpacing: -0.2,
+  },
+  accTypeText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: 'rgba(255, 255, 255, 0.85)',
+    marginTop: 2,
+  },
+  defaultBadge: {
+    paddingHorizontal: 9,
+    paddingVertical: 3,
+    borderRadius: 10,
+    backgroundColor: 'rgba(255, 255, 255, 0.25)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.4)',
+    marginLeft: 4,
+  },
+  defaultBadgeText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    letterSpacing: 0.3,
+  },
+  accBalanceRow: {
+    marginTop: 'auto',
+  },
+  accBalanceLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: 'rgba(255, 255, 255, 0.82)',
+    marginBottom: 2,
+  },
+  accBalanceValue: {
+    fontSize: 22,
+    fontWeight: '900',
+    color: '#FFFFFF',
+    letterSpacing: -0.5,
+  },
+  addAccountCard: {
+    width: 120,
+    minHeight: 132,
+    borderRadius: 24,
+    borderWidth: 1.2,
+    borderStyle: 'dashed',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 12,
+  },
+  addAccountIconCircle: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  addAccountLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    textAlign: 'center',
+  },
+  emptyAccountsCard: {
+    padding: 24,
+    borderRadius: 20,
+    borderWidth: 1.2,
+    alignItems: 'center',
+    marginBottom: 24,
   },
   // EXPENSE CATEGORIES GRID
   gridContainer: {

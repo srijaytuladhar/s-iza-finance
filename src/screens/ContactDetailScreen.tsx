@@ -54,47 +54,36 @@ export const ContactDetailScreen: React.FC = () => {
   let totalWeOwe = 0;
 
   state.transactions.forEach(tx => {
-    if (tx.isReceivable && tx.contactId === contactId) {
-      if (tx.type === 'Expense') {
-        if (tx.splits && tx.splits.length > 0) {
-          tx.splits.forEach(s => {
-            if (s.contactId === contactId && !s.isSettled) {
-              unsettledSplits.push({
-                transactionId: tx.id,
-                description: tx.description || tx.category,
-                date: tx.date,
-                amount: s.amount,
-                type: 'Expense',
-              });
-              totalOwedToUs += s.amount;
-            }
-          });
-        } else {
-          // Simple receivable
-          // We can check if it is settled. Standard angular schema didn't have isSettled in transaction root,
-          // but we check splits or we check if there are no splits.
-          // Let's assume if there are no splits, and it is receivable, it is unsettled.
-          // How do we mark it settled? In settlement function, we toggle splits, but for simple receivables we can
-          // track it. Let's make sure it shows up.
-          // We will find out if there's any matching settlement transaction, but for simplicity let's assume
-          // it is unsettled.
+    if (!tx.isReceivable) return;
+
+    if (tx.splits && tx.splits.length > 0) {
+      tx.splits.forEach(s => {
+        if (s.contactId === contactId && !s.isSettled) {
           unsettledSplits.push({
             transactionId: tx.id,
             description: tx.description || tx.category,
             date: tx.date,
-            amount: tx.amount,
-            type: 'Expense',
+            amount: s.amount,
+            type: tx.type === 'Expense' ? 'Expense' : 'Income',
           });
-          totalOwedToUs += tx.amount;
+          if (tx.type === 'Expense') {
+            totalOwedToUs += s.amount;
+          } else {
+            totalWeOwe += s.amount;
+          }
         }
+      });
+    } else if (tx.contactId === contactId) {
+      unsettledSplits.push({
+        transactionId: tx.id,
+        description: tx.description || tx.category,
+        date: tx.date,
+        amount: tx.amount,
+        type: tx.type === 'Expense' ? 'Expense' : 'Income',
+      });
+      if (tx.type === 'Expense') {
+        totalOwedToUs += tx.amount;
       } else if (tx.type === 'Income') {
-        unsettledSplits.push({
-          transactionId: tx.id,
-          description: tx.description || tx.category,
-          date: tx.date,
-          amount: tx.amount,
-          type: 'Income',
-        });
         totalWeOwe += tx.amount;
       }
     }

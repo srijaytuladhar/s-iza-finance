@@ -423,17 +423,21 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
     let weOwe = 0;
 
     state.transactions.forEach(tx => {
-      if (tx.isReceivable && tx.contactId === contactId) {
-        if (tx.type === 'Expense') {
-          if (tx.splits && tx.splits.length > 0) {
-            tx.splits.forEach(s => {
-              if (s.contactId === contactId && !s.isSettled) {
-                owedToUs += s.amount;
-              }
-            });
-          } else {
-            owedToUs += tx.amount;
+      if (!tx.isReceivable) return;
+
+      if (tx.splits && tx.splits.length > 0) {
+        tx.splits.forEach(s => {
+          if (s.contactId === contactId && !s.isSettled) {
+            if (tx.type === 'Expense') {
+              owedToUs += s.amount;
+            } else if (tx.type === 'Income') {
+              weOwe += s.amount;
+            }
           }
+        });
+      } else if (tx.contactId === contactId) {
+        if (tx.type === 'Expense') {
+          owedToUs += tx.amount;
         } else if (tx.type === 'Income') {
           weOwe += tx.amount;
         }
@@ -445,16 +449,23 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
     // 1. Settle in existing transactions
     const updatedTransactions = state.transactions.map(tx => {
-      if (tx.isReceivable && tx.contactId === contactId) {
-        let splits = tx.splits;
-        if (splits) {
-          splits = splits.map(s => 
+      if (!tx.isReceivable) return tx;
+
+      if (tx.splits && tx.splits.length > 0) {
+        const hasContactSplit = tx.splits.some(s => s.contactId === contactId);
+        if (hasContactSplit) {
+          const splits = tx.splits.map(s => 
             s.contactId === contactId ? { ...s, isSettled: true } : s
           );
+          return {
+            ...tx,
+            splits,
+          };
         }
+      } else if (tx.contactId === contactId) {
         return {
           ...tx,
-          splits,
+          splits: [{ contactId, amount: tx.amount, isSettled: true }],
         };
       }
       return tx;

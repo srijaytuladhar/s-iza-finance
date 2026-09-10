@@ -78,7 +78,7 @@ export const TransactionRow: React.FC<TransactionRowProps> = ({
         <Text style={[styles.meta, { color: colors.textSecondary }]} numberOfLines={1}>
           {isTransfer 
             ? `${account?.name || 'Unknown'} ➔ ${toAccount?.name || 'Unknown'}`
-            : `${account?.name || 'Unknown'}${transaction.contactId ? ` • Split` : ''}`}
+            : `${account?.name || 'Unknown'}${transaction.isReceivable ? ` • Split` : ''}`}
         </Text>
       </View>
 
