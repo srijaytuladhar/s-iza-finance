@@ -26,72 +26,90 @@ export const SplitEditor: React.FC<SplitEditorProps> = ({
 }) => {
   const { state } = useFinance();
   const { colors, isDarkMode } = useTheme();
-  const [splitMode, setSplitMode] = useState<'single' | 'multi'>('single');
-  const [multiSplitType, setMultiSplitType] = useState<'even' | 'custom'>('even');
+
+  const [splitMode, setSplitMode] = useState<'single' | 'multi'>(() => {
+    if (splits && splits.length > 0) return 'multi';
+    return 'single';
+  });
+  const [multiSplitType, setMultiSplitType] = useState<'even' | 'custom'>(() => {
+    if (splits && splits.length > 1) {
+      const firstAmount = splits[0].amount;
+      const isAllEven = splits.every(s => s.amount === firstAmount);
+      return isAllEven ? 'even' : 'custom';
+    }
+    return 'even';
+  });
   
   // Local state to track which contacts are selected and their custom split amounts
-  const [selectedContacts, setSelectedContacts] = useState<Record<string, boolean>>({});
-  const [customAmounts, setCustomAmounts] = useState<Record<string, string>>({});
-
-  // Initialize selected contacts from splits if multi-split was already saved
-  useEffect(() => {
+  const [selectedContacts, setSelectedContacts] = useState<Record<string, boolean>>(() => {
+    const selected: Record<string, boolean> = {};
     if (splits && splits.length > 0) {
-      setSplitMode('multi');
-      const selected: Record<string, boolean> = {};
-      const amounts: Record<string, string> = {};
-      
-      let isAllEven = true;
-      const firstAmount = splits[0].amount;
-      
       splits.forEach(s => {
         selected[s.contactId] = true;
-        amounts[s.contactId] = s.amount.toString();
-        if (s.amount !== firstAmount) {
-          isAllEven = false;
-        }
       });
-      
-      setSelectedContacts(selected);
-      setCustomAmounts(amounts);
-      setMultiSplitType(isAllEven ? 'even' : 'custom');
-    } else if (contactId) {
-      setSplitMode('single');
     }
-  }, []);
+    return selected;
+  });
+  const [customAmounts, setCustomAmounts] = useState<Record<string, string>>(() => {
+    const amounts: Record<string, string> = {};
+    if (splits && splits.length > 0) {
+      splits.forEach(s => {
+        amounts[s.contactId] = s.amount.toString();
+      });
+    }
+    return amounts;
+  });
 
   // Automatically recalculate split amounts when totalAmount, selectedContacts, or mode changes
   useEffect(() => {
+    if (!isReceivable) {
+      return;
+    }
+
     if (splitMode === 'single') {
-      onChangeSplits([]); // Clear splits for single contact receivable
+      if (splits && splits.length > 0) {
+        onChangeSplits([]);
+      }
     } else {
       const activeContactIds = Object.keys(selectedContacts).filter(id => selectedContacts[id]);
       if (activeContactIds.length === 0) {
-        onChangeSplits([]);
+        if (splits && splits.length > 0) {
+          onChangeSplits([]);
+        }
         return;
       }
 
+      let newSplits: Split[];
       if (multiSplitType === 'even') {
         // Evenly split between us + selected contacts (activeContactIds.length + 1)
         const divisor = activeContactIds.length + 1;
         const evenAmount = Number((totalAmount / divisor).toFixed(2));
         
-        const newSplits = activeContactIds.map(id => ({
+        newSplits = activeContactIds.map(id => ({
           contactId: id,
           amount: evenAmount,
           isSettled: false,
         }));
-        onChangeSplits(newSplits);
       } else {
         // Custom split: use input amounts
-        const newSplits = activeContactIds.map(id => ({
+        newSplits = activeContactIds.map(id => ({
           contactId: id,
           amount: Number(customAmounts[id] || 0),
           isSettled: false,
         }));
+      }
+
+      // Only emit if splits actually changed to avoid redundant parent updates
+      const isDifferent =
+        !splits ||
+        splits.length !== newSplits.length ||
+        splits.some((s, idx) => s.contactId !== newSplits[idx]?.contactId || s.amount !== newSplits[idx]?.amount);
+
+      if (isDifferent) {
         onChangeSplits(newSplits);
       }
     }
-  }, [totalAmount, selectedContacts, splitMode, multiSplitType, customAmounts]);
+  }, [totalAmount, selectedContacts, splitMode, multiSplitType, customAmounts, isReceivable]);
 
   const handleToggleContact = (id: string) => {
     setSelectedContacts(prev => ({
@@ -129,6 +147,10 @@ export const SplitEditor: React.FC<SplitEditorProps> = ({
             if (!val) {
               onChangeContactId('');
               onChangeSplits([]);
+              setSelectedContacts({});
+              setCustomAmounts({});
+              setSplitMode('single');
+              setMultiSplitType('even');
             }
           }}
           trackColor={{ false: colors.border, true: colors.primary }}
@@ -145,6 +167,8 @@ export const SplitEditor: React.FC<SplitEditorProps> = ({
               onPress={() => {
                 setSplitMode('single');
                 onChangeSplits([]);
+                setSelectedContacts({});
+                setCustomAmounts({});
               }}
             >
               <Text style={[styles.modeTabText, { color: colors.textSecondary }, splitMode === 'single' && [styles.activeModeTabText, { color: colors.text }]]}>

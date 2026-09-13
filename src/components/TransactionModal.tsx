@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -62,9 +62,32 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
 
   const selectedType = watch('type');
   const watchAmount = watch('amount');
+  const [sessionKey, setSessionKey] = useState(0);
+
+  const resetForm = () => {
+    const defaultAcc = state.accounts.find(a => a.isDefault)?.id || (state.accounts[0]?.id || '');
+    reset({
+      type: initialType,
+      accountId: defaultAcc,
+      toAccountId: '',
+      amount: '',
+      description: '',
+      category: initialCategory || '',
+      date: new Date().toISOString().split('T')[0],
+      isReceivable: false,
+      contactId: '',
+      splits: [],
+    });
+  };
+
+  const handleClose = () => {
+    resetForm();
+    onClose();
+  };
 
   useEffect(() => {
     if (visible) {
+      setSessionKey(prev => prev + 1);
       if (editingTransaction) {
         reset({
           type: editingTransaction.type,
@@ -79,19 +102,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
           splits: (editingTransaction.splits as any) || [],
         });
       } else {
-        const defaultAcc = state.accounts.find(a => a.isDefault)?.id || (state.accounts[0]?.id || '');
-        reset({
-          type: initialType,
-          accountId: defaultAcc,
-          toAccountId: '',
-          amount: '',
-          description: '',
-          category: initialCategory || '',
-          date: new Date().toISOString().split('T')[0],
-          isReceivable: false,
-          contactId: '',
-          splits: [],
-        });
+        resetForm();
       }
     }
   }, [visible, editingTransaction, initialType, initialCategory]);
@@ -145,7 +156,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
       } else {
         await addTransaction(txPayload);
       }
-      onClose();
+      handleClose();
     } catch (e) {
       showAlert('Error', 'Failed to save transaction: ' + e);
     }
@@ -163,7 +174,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
           style: 'destructive',
           onPress: async () => {
             await deleteTransaction(editingTransaction.id);
-            onClose();
+            handleClose();
           }
         }
       ]
@@ -175,7 +186,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
       visible={visible}
       animationType="slide"
       presentationStyle="pageSheet"
-      onRequestClose={onClose}
+      onRequestClose={handleClose}
     >
       <GlassBackground>
         <SafeAreaView style={[styles.modalContainer, { backgroundColor: 'transparent' }]}>
@@ -189,7 +200,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                   <FinanceIcon name="trash" size={16} color="#EF4444" />
                 </Pressable>
               )}
-              <Pressable onPress={onClose} style={styles.closeButton}>
+              <Pressable onPress={handleClose} style={styles.closeButton}>
                 <Text style={styles.closeButtonText}>Cancel</Text>
               </Pressable>
               <Pressable onPress={handleSubmit(onSubmit)} style={styles.headerSaveButton}>
@@ -373,13 +384,20 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
 
                   return (
                     <SplitEditor
+                      key={`${sessionKey}-${editingTransaction?.id || 'new'}`}
                       totalAmount={parseFloat(watchAmount) || 0}
                       splits={value}
                       onChangeSplits={onChange}
                       contactId={contactIdVal}
                       onChangeContactId={(id) => setValue('contactId', id)}
                       isReceivable={isReceivableVal}
-                      onChangeIsReceivable={(val) => setValue('isReceivable', val)}
+                      onChangeIsReceivable={(val) => {
+                        setValue('isReceivable', val);
+                        if (!val) {
+                          setValue('contactId', '');
+                          setValue('splits', []);
+                        }
+                      }}
                     />
                   );
                 }}
