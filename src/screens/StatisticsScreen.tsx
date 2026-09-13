@@ -22,6 +22,7 @@ import { DatePicker } from '../components/DatePicker';
 import { PieChart } from 'react-native-chart-kit';
 import { useTheme } from '../utils/theme';
 import { showAlert } from '../utils/alert';
+import { useNavigation } from '@react-navigation/native';
 
 type RangePreset = 'month' | '7days' | '30days' | 'year' | 'custom';
 
@@ -61,6 +62,7 @@ const getYearRange = (year: number) => {
 const screenWidth = Dimensions.get('window').width;
 
 export const StatisticsScreen: React.FC = () => {
+  const navigation = useNavigation<any>();
   const { state, updateSettings, updateDateFilter } = useFinance();
   const { colors, isDarkMode } = useTheme();
   const currencySymbol = state.settings.currencySymbol;
@@ -888,27 +890,37 @@ export const StatisticsScreen: React.FC = () => {
           {/* PENDING RECEIVABLES BAR GRAPH */}
           <View style={[styles.glassCard, colors.glassShadow, { backgroundColor: colors.glassCard, borderColor: colors.glassBorder }]}>
             <View style={styles.cardHeaderRow}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <Pressable 
+                style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}
+                onPress={() => navigation.navigate('More', { screen: 'Contacts' })}
+              >
                 <FinanceIcon name="hand-holding-usd" size={16} color="#38BDF8" />
                 <Text style={[styles.cardTitle, { color: colors.text }]}>Pending Receivables</Text>
-              </View>
+                <FinanceIcon name="chevron-right" size={12} color={colors.textSecondary} />
+              </Pressable>
               {totalReceivablesAmount > 0 && (
-                <View style={[styles.balanceChip, { backgroundColor: isDarkMode ? 'rgba(56, 189, 248, 0.18)' : 'rgba(2, 132, 199, 0.12)' }]}>
+                <Pressable 
+                  onPress={() => navigation.navigate('More', { screen: 'Contacts' })}
+                  style={[styles.balanceChip, { backgroundColor: isDarkMode ? 'rgba(56, 189, 248, 0.18)' : 'rgba(2, 132, 199, 0.12)' }]}
+                >
                   <Text style={[styles.balanceChipText, { color: isDarkMode ? '#38BDF8' : '#0284C7', fontWeight: '700' }]}>
                     {formatNumber(totalReceivablesAmount, currencySymbol)}
                   </Text>
-                </View>
+                </Pressable>
               )}
             </View>
 
             {contactReceivablesList.length === 0 ? (
-              <View style={styles.emptyChart}>
+              <Pressable 
+                style={styles.emptyChart}
+                onPress={() => navigation.navigate('More', { screen: 'Contacts' })}
+              >
                 <FinanceIcon name="check-circle" size={24} color="#10B981" style={{ marginBottom: 6, alignSelf: 'center' }} />
                 <Text style={styles.emptyChartText}>No pending receivables.</Text>
                 <Text style={{ fontSize: 11, color: colors.textSecondary, textAlign: 'center', marginTop: 2 }}>
                   All split bills and shared expenses are settled!
                 </Text>
-              </View>
+              </Pressable>
             ) : (
               <View style={styles.barGraphContainer}>
                 {contactReceivablesList.map((item, idx) => {
@@ -918,7 +930,21 @@ export const StatisticsScreen: React.FC = () => {
                   const barColor = contactPalette[idx % contactPalette.length];
 
                   return (
-                    <View key={item.contactId} style={styles.categoryBarItem}>
+                    <Pressable
+                      key={item.contactId}
+                      style={({ pressed }) => [
+                        styles.categoryBarItem,
+                        pressed && { opacity: 0.7, transform: [{ scale: 0.99 }] },
+                      ]}
+                      onPress={() => {
+                        navigation.navigate('More', {
+                          screen: 'ContactDetail',
+                          params: { contactId: item.contactId },
+                        });
+                      }}
+                      accessibilityRole="button"
+                      accessibilityLabel={`View ${item.contactName} details`}
+                    >
                       <View style={styles.categoryBarHeader}>
                         <View style={styles.categoryBarLeft}>
                           <View style={[styles.categoryIconCircle, { backgroundColor: `${barColor}25` }]}>
@@ -935,6 +961,7 @@ export const StatisticsScreen: React.FC = () => {
                           <Text style={[styles.categoryBarPercent, { color: colors.textSecondary }]}>
                             {percentOfTotal}%
                           </Text>
+                          <FinanceIcon name="chevron-right" size={11} color={colors.textSecondary} />
                         </View>
                       </View>
 
@@ -949,7 +976,7 @@ export const StatisticsScreen: React.FC = () => {
                           ]}
                         />
                       </View>
-                    </View>
+                    </Pressable>
                   );
                 })}
               </View>

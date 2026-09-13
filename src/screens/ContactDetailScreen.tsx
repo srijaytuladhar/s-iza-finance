@@ -40,6 +40,12 @@ export const ContactDetailScreen: React.FC = () => {
   const contact = state.contacts.find(c => c.id === contactId);
   const currencySymbol = state.settings.currencySymbol;
 
+  React.useLayoutEffect(() => {
+    if (contact?.name) {
+      navigation.setOptions({ title: contact.name });
+    }
+  }, [navigation, contact?.name]);
+
   if (!contact) {
     return (
       <View style={styles.errorContainer}>
