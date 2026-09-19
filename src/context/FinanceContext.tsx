@@ -20,13 +20,16 @@ export interface Settings {
   monthlyBudget?: number;
 }
 
-export type DateFilterPreset = 'month' | '7days' | '30days' | 'year' | 'custom';
+export type DateFilterPreset = 'month' | '7days' | '30days' | 'year' | 'custom' | 'nepali_month' | 'nepali_year';
 
 export interface DateFilterConfig {
   rangePreset: DateFilterPreset;
   currentMonthDate: string; // ISO string
   customStartDate: string; // "YYYY-MM-DD"
   customEndDate: string; // "YYYY-MM-DD"
+  calendarMode?: 'AD' | 'BS';
+  nepaliYear?: number;
+  nepaliMonth?: number; // 0 to 11
 }
 
 export const getDefaultDateFilter = (): DateFilterConfig => {

@@ -16,6 +16,7 @@
     "expo-linear-gradient": "^57.0.1",
     "expo-sharing": "~57.0.16",
     "expo-status-bar": "~57.0.1",
+    "nepali-date-converter": "^3.4.0",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "react-hook-form": "^7.87.0",

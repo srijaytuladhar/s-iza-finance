@@ -23,8 +23,17 @@ import { PieChart } from 'react-native-chart-kit';
 import { useTheme } from '../utils/theme';
 import { showAlert } from '../utils/alert';
 import { useNavigation } from '@react-navigation/native';
+import {
+  NEPALI_MONTHS,
+  getNepaliMonthRange,
+  getNepaliYearRange,
+  getCurrentNepaliDate,
+  getAvailableNepaliYears,
+  getPreviousNepaliMonth,
+  getNextNepaliMonth,
+} from '../utils/nepaliCalendar';
 
-type RangePreset = 'month' | '7days' | '30days' | 'year' | 'custom';
+type RangePreset = 'month' | '7days' | '30days' | 'year' | 'custom' | 'nepali_month' | 'nepali_year';
 
 const toDateString = (d: Date): string => {
   const y = d.getFullYear();
@@ -69,11 +78,18 @@ export const StatisticsScreen: React.FC = () => {
 
   // Cached Date Range Filter State from FinanceContext & AsyncStorage
   const dateFilter = state.dateFilter;
-  const rangePreset = dateFilter.rangePreset;
+  const currentNepaliDate = getCurrentNepaliDate();
+  const calendarMode = dateFilter.calendarMode || 'BS';
+  const rangePreset = dateFilter.rangePreset || (calendarMode === 'BS' ? 'nepali_month' : 'month');
+  const activeNepaliYear = dateFilter.nepaliYear || currentNepaliDate.year;
+  const activeNepaliMonth = dateFilter.nepaliMonth !== undefined ? dateFilter.nepaliMonth : currentNepaliDate.month;
   const currentMonthDate = new Date(dateFilter.currentMonthDate);
   const customStartDate = dateFilter.customStartDate;
   const customEndDate = dateFilter.customEndDate;
   const [isCustomExpanded, setIsCustomExpanded] = useState<boolean>(false);
+  const [yearPickerModalVisible, setYearPickerModalVisible] = useState<boolean>(false);
+
+  const availableYears = getAvailableNepaliYears();
 
   // Chart view mode: 'bars' or 'donut'
   const [chartView, setChartView] = useState<'bars' | 'donut'>('bars');
@@ -86,7 +102,15 @@ export const StatisticsScreen: React.FC = () => {
   let activeStartDate = customStartDate;
   let activeEndDate = customEndDate;
 
-  if (rangePreset === 'month') {
+  if (rangePreset === 'nepali_month') {
+    const r = getNepaliMonthRange(activeNepaliYear, activeNepaliMonth);
+    activeStartDate = r.start;
+    activeEndDate = r.end;
+  } else if (rangePreset === 'nepali_year') {
+    const r = getNepaliYearRange(activeNepaliYear);
+    activeStartDate = r.start;
+    activeEndDate = r.end;
+  } else if (rangePreset === 'month') {
     const r = getMonthRange(currentMonthDate);
     activeStartDate = r.start;
     activeEndDate = r.end;
@@ -110,6 +134,13 @@ export const StatisticsScreen: React.FC = () => {
   const activeRangeDays = Math.max(1, Math.round((endTs - startTs) / (1000 * 60 * 60 * 24)) + 1);
 
   const formatRangeLabel = () => {
+    if (rangePreset === 'nepali_month') {
+      const m = NEPALI_MONTHS[activeNepaliMonth] || NEPALI_MONTHS[0];
+      return `${m.name} ${activeNepaliYear} BS`;
+    }
+    if (rangePreset === 'nepali_year') {
+      return `Year ${activeNepaliYear} BS`;
+    }
     if (rangePreset === 'month') {
       return currentMonthDate.toLocaleString('default', { month: 'long', year: 'numeric' });
     }
@@ -129,8 +160,20 @@ export const StatisticsScreen: React.FC = () => {
     return `${s1} – ${s2}`;
   };
 
+  const formatRangeSubText = () => {
+    if (rangePreset === 'nepali_month') {
+      const r = getNepaliMonthRange(activeNepaliYear, activeNepaliMonth);
+      return `${r.subLabel} • ${r.days} days`;
+    }
+    if (rangePreset === 'nepali_year') {
+      const r = getNepaliYearRange(activeNepaliYear);
+      return `${r.subLabel} • ${r.days} days`;
+    }
+    return `${activeRangeDays} ${activeRangeDays === 1 ? 'day' : 'days'}`;
+  };
+
   const handleSelectPreset = (preset: RangePreset) => {
-    let newFilter = { ...dateFilter, rangePreset: preset };
+    let newFilter = { ...dateFilter, rangePreset: preset, calendarMode: 'AD' as const };
     if (preset === 'custom') {
       setIsCustomExpanded(true);
     } else {
@@ -157,9 +200,111 @@ export const StatisticsScreen: React.FC = () => {
     updateDateFilter(newFilter);
   };
 
+  const handleSelectNepaliMonth = (monthIndex: number) => {
+    const r = getNepaliMonthRange(activeNepaliYear, monthIndex);
+    updateDateFilter({
+      ...dateFilter,
+      calendarMode: 'BS',
+      rangePreset: 'nepali_month',
+      nepaliYear: activeNepaliYear,
+      nepaliMonth: monthIndex,
+      customStartDate: r.start,
+      customEndDate: r.end,
+    });
+  };
+
+  const handleSelectNepaliYear = (year: number) => {
+    setYearPickerModalVisible(false);
+    if (rangePreset === 'nepali_year') {
+      const r = getNepaliYearRange(year);
+      updateDateFilter({
+        ...dateFilter,
+        calendarMode: 'BS',
+        rangePreset: 'nepali_year',
+        nepaliYear: year,
+        customStartDate: r.start,
+        customEndDate: r.end,
+      });
+    } else {
+      const r = getNepaliMonthRange(year, activeNepaliMonth);
+      updateDateFilter({
+        ...dateFilter,
+        calendarMode: 'BS',
+        rangePreset: 'nepali_month',
+        nepaliYear: year,
+        nepaliMonth: activeNepaliMonth,
+        customStartDate: r.start,
+        customEndDate: r.end,
+      });
+    }
+  };
+
+  const handleSelectFullNepaliYear = () => {
+    const r = getNepaliYearRange(activeNepaliYear);
+    updateDateFilter({
+      ...dateFilter,
+      calendarMode: 'BS',
+      rangePreset: 'nepali_year',
+      nepaliYear: activeNepaliYear,
+      customStartDate: r.start,
+      customEndDate: r.end,
+    });
+  };
+
+  const handleToggleCalendarMode = (mode: 'AD' | 'BS') => {
+    if (mode === 'BS') {
+      const r = getNepaliMonthRange(activeNepaliYear, activeNepaliMonth);
+      updateDateFilter({
+        ...dateFilter,
+        calendarMode: 'BS',
+        rangePreset: 'nepali_month',
+        nepaliYear: activeNepaliYear,
+        nepaliMonth: activeNepaliMonth,
+        customStartDate: r.start,
+        customEndDate: r.end,
+      });
+      setIsCustomExpanded(false);
+    } else {
+      const r = getMonthRange(currentMonthDate);
+      updateDateFilter({
+        ...dateFilter,
+        calendarMode: 'AD',
+        rangePreset: 'month',
+        customStartDate: r.start,
+        customEndDate: r.end,
+      });
+      setIsCustomExpanded(false);
+    }
+  };
+
   const handlePrevPeriod = () => {
     let newFilter = { ...dateFilter };
-    if (rangePreset === 'month') {
+    if (rangePreset === 'nepali_month') {
+      const prev = getPreviousNepaliMonth(activeNepaliYear, activeNepaliMonth);
+      const r = getNepaliMonthRange(prev.year, prev.monthIndex);
+      updateDateFilter({
+        ...newFilter,
+        calendarMode: 'BS',
+        rangePreset: 'nepali_month',
+        nepaliYear: prev.year,
+        nepaliMonth: prev.monthIndex,
+        customStartDate: r.start,
+        customEndDate: r.end,
+      });
+      return;
+    } else if (rangePreset === 'nepali_year') {
+      const prevYear = activeNepaliYear - 1;
+      const r = getNepaliYearRange(prevYear);
+      updateDateFilter({
+        ...newFilter,
+        calendarMode: 'BS',
+        rangePreset: 'nepali_year',
+        nepaliYear: prevYear,
+        customStartDate: r.start,
+        customEndDate: r.end,
+      });
+      return;
+    } else if (rangePreset === 'month') {
       const prev = new Date(currentMonthDate.getFullYear(), currentMonthDate.getMonth() - 1, 1);
       const r = getMonthRange(prev);
       newFilter = {
@@ -197,7 +342,32 @@ export const StatisticsScreen: React.FC = () => {
 
   const handleNextPeriod = () => {
     let newFilter = { ...dateFilter };
-    if (rangePreset === 'month') {
+    if (rangePreset === 'nepali_month') {
+      const next = getNextNepaliMonth(activeNepaliYear, activeNepaliMonth);
+      const r = getNepaliMonthRange(next.year, next.monthIndex);
+      updateDateFilter({
+        ...newFilter,
+        calendarMode: 'BS',
+        rangePreset: 'nepali_month',
+        nepaliYear: next.year,
+        nepaliMonth: next.monthIndex,
+        customStartDate: r.start,
+        customEndDate: r.end,
+      });
+      return;
+    } else if (rangePreset === 'nepali_year') {
+      const nextYear = activeNepaliYear + 1;
+      const r = getNepaliYearRange(nextYear);
+      updateDateFilter({
+        ...newFilter,
+        calendarMode: 'BS',
+        rangePreset: 'nepali_year',
+        nepaliYear: nextYear,
+        customStartDate: r.start,
+        customEndDate: r.end,
+      });
+      return;
+    } else if (rangePreset === 'month') {
       const next = new Date(currentMonthDate.getFullYear(), currentMonthDate.getMonth() + 1, 1);
       const r = getMonthRange(next);
       newFilter = {
@@ -455,13 +625,17 @@ export const StatisticsScreen: React.FC = () => {
                   },
                 ]}
                 onPress={() => {
-                  if (rangePreset !== 'custom') {
-                    updateDateFilter({
-                      ...dateFilter,
-                      rangePreset: 'custom',
-                    });
+                  if (calendarMode === 'BS') {
+                    setYearPickerModalVisible(true);
+                  } else {
+                    if (rangePreset !== 'custom') {
+                      updateDateFilter({
+                        ...dateFilter,
+                        rangePreset: 'custom',
+                      });
+                    }
+                    setIsCustomExpanded(prev => !prev);
                   }
-                  setIsCustomExpanded(prev => !prev);
                 }}
               >
                 <View style={[styles.rangeIconCircle, { backgroundColor: `${colors.primary}20` }]}>
@@ -471,14 +645,14 @@ export const StatisticsScreen: React.FC = () => {
                   <Text style={[styles.rangeLabelText, { color: colors.text }]} numberOfLines={1}>
                     {formatRangeLabel()}
                   </Text>
-                  <Text style={[styles.rangeDaysSubText, { color: colors.textSecondary }]}>
-                    {activeRangeDays} {activeRangeDays === 1 ? 'day' : 'days'}
+                  <Text style={[styles.rangeDaysSubText, { color: colors.textSecondary }]} numberOfLines={1}>
+                    {formatRangeSubText()}
                   </Text>
                 </View>
                 <FinanceIcon
-                  name={isCustomExpanded ? 'chevron-up' : 'sliders-h'}
+                  name={calendarMode === 'BS' ? 'calendar' : (isCustomExpanded ? 'chevron-up' : 'sliders-h')}
                   size={11}
-                  color={isCustomExpanded ? colors.primary : colors.textSecondary}
+                  color={colors.primary}
                 />
               </Pressable>
 
@@ -487,105 +661,236 @@ export const StatisticsScreen: React.FC = () => {
               </Pressable>
             </View>
 
-            {/* Preset Quick Filter Chips */}
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.presetScrollContent}
-              style={styles.presetScrollView}
-            >
-              {[
-                { id: 'month', label: 'This Month' },
-                { id: '7days', label: 'Last 7 Days' },
-                { id: '30days', label: 'Last 30 Days' },
-                { id: 'year', label: 'This Year' },
-                { id: 'custom', label: 'Custom Range ⚙️' },
-              ].map(p => {
-                const isSelected = rangePreset === p.id;
-                return (
+            {/* Calendar System Segmented Switcher */}
+            <View style={[styles.calendarModeToggle, { backgroundColor: isDarkMode ? 'rgba(30, 41, 59, 0.65)' : 'rgba(241, 245, 249, 0.85)' }]}>
+              <Pressable
+                style={[
+                  styles.calendarModeTab,
+                  calendarMode === 'BS' && [styles.calendarModeTabActive, { backgroundColor: colors.card }],
+                ]}
+                onPress={() => handleToggleCalendarMode('BS')}
+              >
+                <Text style={[
+                  styles.calendarModeTabText,
+                  { color: calendarMode === 'BS' ? colors.text : colors.textSecondary },
+                  calendarMode === 'BS' && { fontWeight: '700' },
+                ]}>
+                  🇳🇵 Nepali (BS)
+                </Text>
+              </Pressable>
+              <Pressable
+                style={[
+                  styles.calendarModeTab,
+                  calendarMode === 'AD' && [styles.calendarModeTabActive, { backgroundColor: colors.card }],
+                ]}
+                onPress={() => handleToggleCalendarMode('AD')}
+              >
+                <Text style={[
+                  styles.calendarModeTabText,
+                  { color: calendarMode === 'AD' ? colors.text : colors.textSecondary },
+                  calendarMode === 'AD' && { fontWeight: '700' },
+                ]}>
+                  🌐 English (AD)
+                </Text>
+              </Pressable>
+            </View>
+
+            {/* If BS Mode: Nepali Year Selector + Nepali Month Chips */}
+            {calendarMode === 'BS' ? (
+              <View style={styles.bsControlsContainer}>
+                {/* Year Selection Row */}
+                <View style={styles.nepaliYearRow}>
+                  <View style={styles.yearNavGroup}>
+                    <Pressable
+                      style={[styles.nepaliYearArrowBtn, { backgroundColor: colors.glassInput, borderColor: colors.glassBorder }]}
+                      onPress={() => handleSelectNepaliYear(activeNepaliYear - 1)}
+                      hitSlop={6}
+                    >
+                      <FinanceIcon name="chevron-left" size={10} color={colors.textSecondary} />
+                    </Pressable>
+
+                    <Pressable
+                      style={[styles.yearPillBtn, { backgroundColor: colors.glassInput, borderColor: colors.glassBorder }]}
+                      onPress={() => setYearPickerModalVisible(true)}
+                    >
+                      <Text style={[styles.yearPillBtnText, { color: colors.text }]}>
+                        {activeNepaliYear} BS
+                      </Text>
+                      <FinanceIcon name="chevron-down" size={9} color={colors.primary} />
+                    </Pressable>
+
+                    <Pressable
+                      style={[styles.nepaliYearArrowBtn, { backgroundColor: colors.glassInput, borderColor: colors.glassBorder }]}
+                      onPress={() => handleSelectNepaliYear(activeNepaliYear + 1)}
+                      hitSlop={6}
+                    >
+                      <FinanceIcon name="chevron-right" size={10} color={colors.textSecondary} />
+                    </Pressable>
+                  </View>
+
                   <Pressable
-                    key={p.id}
                     style={[
-                      styles.rangePresetChip,
+                      styles.fullYearChip,
                       {
-                        backgroundColor: isSelected ? colors.primary : colors.glassInput,
-                        borderColor: isSelected ? colors.primary : colors.glassBorder,
+                        backgroundColor: rangePreset === 'nepali_year' ? colors.primary : colors.glassInput,
+                        borderColor: rangePreset === 'nepali_year' ? colors.primary : colors.glassBorder,
                       },
                     ]}
-                    onPress={() => handleSelectPreset(p.id as RangePreset)}
+                    onPress={handleSelectFullNepaliYear}
                   >
-                    <Text
-                      style={[
-                        styles.rangePresetChipText,
-                        { color: isSelected ? '#FFFFFF' : colors.textSecondary },
-                        isSelected && styles.rangePresetChipTextActive,
-                      ]}
-                    >
-                      {p.label}
+                    <Text style={[
+                      styles.fullYearChipText,
+                      { color: rangePreset === 'nepali_year' ? '#FFFFFF' : colors.textSecondary },
+                      rangePreset === 'nepali_year' && { fontWeight: '700' },
+                    ]}>
+                      Full Year {activeNepaliYear}
                     </Text>
                   </Pressable>
-                );
-              })}
-            </ScrollView>
-
-            {/* Expandable Custom Range Drawer */}
-            {isCustomExpanded && (
-              <View style={[styles.customRangeDrawer, { borderTopColor: colors.glassBorder }]}>
-                <View style={styles.customDrawerHeader}>
-                  <View style={styles.customDrawerTitleGroup}>
-                    <FinanceIcon name="calendar" size={13} color={colors.primary} />
-                    <Text style={[styles.customDrawerTitle, { color: colors.text }]}>Custom Date Range</Text>
-                  </View>
-                  <Pressable
-                    style={styles.closeDrawerBtn}
-                    onPress={() => setIsCustomExpanded(false)}
-                    hitSlop={8}
-                  >
-                    <FinanceIcon name="times" size={12} color={colors.textSecondary} />
-                  </Pressable>
                 </View>
 
-                <View style={styles.customPickersContainer}>
-                  <DatePicker
-                    label="Start Date"
-                    value={customStartDate}
-                    onChange={val => {
-                      const newEnd = val > customEndDate ? val : customEndDate;
-                      updateDateFilter({
-                        ...dateFilter,
-                        rangePreset: 'custom',
-                        customStartDate: val,
-                        customEndDate: newEnd,
-                      });
-                    }}
-                  />
-                  <DatePicker
-                    label="End Date"
-                    value={customEndDate}
-                    onChange={val => {
-                      const newStart = val < customStartDate ? val : customStartDate;
-                      updateDateFilter({
-                        ...dateFilter,
-                        rangePreset: 'custom',
-                        customStartDate: newStart,
-                        customEndDate: val,
-                      });
-                    }}
-                  />
-                </View>
-
-                <Pressable
-                  style={({ pressed }) => [
-                    styles.applyRangeBtn,
-                    { backgroundColor: colors.primary, opacity: pressed ? 0.88 : 1 },
-                  ]}
-                  onPress={() => setIsCustomExpanded(false)}
+                {/* Horizontal Nepali Month Chips */}
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.monthChipsScrollContent}
+                  style={styles.monthChipsScrollView}
                 >
-                  <Text style={styles.applyRangeBtnText}>
-                    Apply Filter ({activeRangeDays} {activeRangeDays === 1 ? 'day' : 'days'})
-                  </Text>
-                </Pressable>
+                  {NEPALI_MONTHS.map(m => {
+                    const isSelected = rangePreset === 'nepali_month' && activeNepaliMonth === m.index;
+                    return (
+                      <Pressable
+                        key={m.index}
+                        style={[
+                          styles.nepaliMonthChip,
+                          {
+                            backgroundColor: isSelected ? colors.primary : colors.glassInput,
+                            borderColor: isSelected ? colors.primary : colors.glassBorder,
+                          },
+                          isSelected && styles.nepaliMonthChipActive,
+                        ]}
+                        onPress={() => handleSelectNepaliMonth(m.index)}
+                      >
+                        <Text style={[
+                          styles.nepaliMonthChipText,
+                          { color: isSelected ? '#FFFFFF' : colors.text },
+                          isSelected && { fontWeight: '700' },
+                        ]}>
+                          {m.name}
+                        </Text>
+                        <Text style={[
+                          styles.nepaliMonthSubText,
+                          { color: isSelected ? 'rgba(255, 255, 255, 0.85)' : colors.textSecondary },
+                        ]}>
+                          {m.nepaliName}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </ScrollView>
               </View>
+            ) : (
+              /* If AD Mode: Standard Quick Presets */
+              <>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.presetScrollContent}
+                  style={styles.presetScrollView}
+                >
+                  {[
+                    { id: 'month', label: 'This Month' },
+                    { id: '7days', label: 'Last 7 Days' },
+                    { id: '30days', label: 'Last 30 Days' },
+                    { id: 'year', label: 'This Year' },
+                    { id: 'custom', label: 'Custom Range ⚙️' },
+                  ].map(p => {
+                    const isSelected = rangePreset === p.id;
+                    return (
+                      <Pressable
+                        key={p.id}
+                        style={[
+                          styles.rangePresetChip,
+                          {
+                            backgroundColor: isSelected ? colors.primary : colors.glassInput,
+                            borderColor: isSelected ? colors.primary : colors.glassBorder,
+                          },
+                        ]}
+                        onPress={() => handleSelectPreset(p.id as RangePreset)}
+                      >
+                        <Text
+                          style={[
+                            styles.rangePresetChipText,
+                            { color: isSelected ? '#FFFFFF' : colors.textSecondary },
+                            isSelected && styles.rangePresetChipTextActive,
+                          ]}
+                        >
+                          {p.label}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </ScrollView>
+
+                {/* Expandable Custom Range Drawer */}
+                {isCustomExpanded && (
+                  <View style={[styles.customRangeDrawer, { borderTopColor: colors.glassBorder }]}>
+                    <View style={styles.customDrawerHeader}>
+                      <View style={styles.customDrawerTitleGroup}>
+                        <FinanceIcon name="calendar" size={13} color={colors.primary} />
+                        <Text style={[styles.customDrawerTitle, { color: colors.text }]}>Custom Date Range</Text>
+                      </View>
+                      <Pressable
+                        style={styles.closeDrawerBtn}
+                        onPress={() => setIsCustomExpanded(false)}
+                        hitSlop={8}
+                      >
+                        <FinanceIcon name="times" size={12} color={colors.textSecondary} />
+                      </Pressable>
+                    </View>
+
+                    <View style={styles.customPickersContainer}>
+                      <DatePicker
+                        label="Start Date"
+                        value={customStartDate}
+                        onChange={val => {
+                          const newEnd = val > customEndDate ? val : customEndDate;
+                          updateDateFilter({
+                            ...dateFilter,
+                            rangePreset: 'custom',
+                            customStartDate: val,
+                            customEndDate: newEnd,
+                          });
+                        }}
+                      />
+                      <DatePicker
+                        label="End Date"
+                        value={customEndDate}
+                        onChange={val => {
+                          const newStart = val < customStartDate ? val : customStartDate;
+                          updateDateFilter({
+                            ...dateFilter,
+                            rangePreset: 'custom',
+                            customStartDate: newStart,
+                            customEndDate: val,
+                          });
+                        }}
+                      />
+                    </View>
+
+                    <Pressable
+                      style={({ pressed }) => [
+                        styles.applyRangeBtn,
+                        { backgroundColor: colors.primary, opacity: pressed ? 0.88 : 1 },
+                      ]}
+                      onPress={() => setIsCustomExpanded(false)}
+                    >
+                      <Text style={styles.applyRangeBtnText}>
+                        Apply Filter ({activeRangeDays} {activeRangeDays === 1 ? 'day' : 'days'})
+                      </Text>
+                    </Pressable>
+                  </View>
+                )}
+              </>
             )}
           </View>
 
@@ -1077,6 +1382,68 @@ export const StatisticsScreen: React.FC = () => {
               </Pressable>
             </Pressable>
           </Modal>
+
+          {/* Nepali Year Selection Modal */}
+          <Modal
+            visible={yearPickerModalVisible}
+            transparent={true}
+            animationType="fade"
+            onRequestClose={() => setYearPickerModalVisible(false)}
+          >
+            <Pressable
+              style={styles.yearModalOverlay}
+              onPress={() => setYearPickerModalVisible(false)}
+            >
+              <Pressable
+                style={[styles.yearModalContent, colors.glassShadow, { backgroundColor: colors.card, borderColor: colors.glassBorder }]}
+                onPress={e => e.stopPropagation()}
+              >
+                <View style={styles.yearModalTitleRow}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                    <FinanceIcon name="calendar" size={15} color={colors.primary} />
+                    <Text style={[styles.yearModalTitle, { color: colors.text }]}>Select Nepali Year (वि.सं.)</Text>
+                  </View>
+                  <Pressable
+                    onPress={() => setYearPickerModalVisible(false)}
+                    hitSlop={8}
+                    style={styles.closeDrawerBtn}
+                  >
+                    <FinanceIcon name="times" size={13} color={colors.textSecondary} />
+                  </Pressable>
+                </View>
+
+                <ScrollView style={styles.yearModalList} showsVerticalScrollIndicator={false}>
+                  {availableYears.map(y => {
+                    const isSelected = activeNepaliYear === y;
+                    return (
+                      <Pressable
+                        key={y}
+                        style={[
+                          styles.yearItemRow,
+                          { borderBottomColor: colors.glassBorder },
+                          isSelected && { backgroundColor: isDarkMode ? 'rgba(56, 189, 248, 0.12)' : 'rgba(2, 132, 199, 0.08)' }
+                        ]}
+                        onPress={() => handleSelectNepaliYear(y)}
+                      >
+                        <Text style={[
+                          styles.yearItemText,
+                          { color: isSelected ? colors.primary : colors.text },
+                          isSelected && { fontWeight: '700' }
+                        ]}>
+                          {y} BS
+                        </Text>
+                        {isSelected && (
+                          <View style={[styles.yearCheckBadge, { backgroundColor: colors.primary }]}>
+                            <FinanceIcon name="check" size={9} color="#FFFFFF" />
+                          </View>
+                        )}
+                      </Pressable>
+                    );
+                  })}
+                </ScrollView>
+              </Pressable>
+            </Pressable>
+          </Modal>
         </ScrollView>
       </SafeAreaView>
     </GlassBackground>
@@ -1193,6 +1560,158 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '500',
     marginTop: 1,
+  },
+  calendarModeToggle: {
+    flexDirection: 'row',
+    borderRadius: 14,
+    padding: 3,
+    marginTop: 10,
+  },
+  calendarModeTab: {
+    flex: 1,
+    paddingVertical: 7,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 11,
+  },
+  calendarModeTabActive: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1.5 },
+    shadowOpacity: 0.12,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  calendarModeTabText: {
+    fontSize: 12,
+    letterSpacing: 0.2,
+  },
+  bsControlsContainer: {
+    marginTop: 10,
+  },
+  nepaliYearRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+  },
+  yearNavGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  nepaliYearArrowBtn: {
+    width: 28,
+    height: 28,
+    borderRadius: 9,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  yearPillBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 10,
+    height: 28,
+    borderRadius: 10,
+    borderWidth: 1,
+  },
+  yearPillBtnText: {
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  fullYearChip: {
+    paddingHorizontal: 10,
+    height: 28,
+    borderRadius: 10,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  fullYearChipText: {
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  monthChipsScrollView: {
+    marginTop: 2,
+  },
+  monthChipsScrollContent: {
+    flexDirection: 'row',
+    gap: 8,
+    paddingRight: 10,
+    paddingVertical: 2,
+  },
+  nepaliMonthChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 12,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minWidth: 74,
+  },
+  nepaliMonthChipActive: {
+    shadowColor: '#0284C7',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  nepaliMonthChipText: {
+    fontSize: 12,
+  },
+  nepaliMonthSubText: {
+    fontSize: 10,
+    marginTop: 1,
+  },
+  yearModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  yearModalContent: {
+    width: '100%',
+    maxWidth: 320,
+    maxHeight: 400,
+    borderRadius: 22,
+    borderWidth: 1.2,
+    padding: 18,
+    overflow: 'hidden',
+  },
+  yearModalTitleRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+    paddingBottom: 8,
+  },
+  yearModalTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  yearModalList: {
+    maxHeight: 300,
+  },
+  yearItemRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 10,
+    borderRadius: 10,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  yearItemText: {
+    fontSize: 14,
+  },
+  yearCheckBadge: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   presetScrollView: {
     marginTop: 10,
