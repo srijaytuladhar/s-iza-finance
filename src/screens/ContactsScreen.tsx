@@ -72,10 +72,13 @@ export const ContactsScreen: React.FC = () => {
           }
         });
       } else if (tx.contactId === contactId) {
-        if (tx.type === 'Expense') {
-          owedToUs += tx.amount;
-        } else if (tx.type === 'Income') {
-          weOwe += tx.amount;
+        const isAlreadySettled = tx.isSettled || tx.splits?.some(s => s.contactId === contactId && s.isSettled);
+        if (!isAlreadySettled) {
+          if (tx.type === 'Expense') {
+            owedToUs += tx.amount;
+          } else if (tx.type === 'Income') {
+            weOwe += tx.amount;
+          }
         }
       }
     });

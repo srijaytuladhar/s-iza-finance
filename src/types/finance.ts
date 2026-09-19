@@ -30,6 +30,7 @@ export interface Transaction {
   isReceivable?: boolean; // true if this expense/income involves a contact owing/being owed
   contactId?: string;
   splits?: Split[]; // for bill-splitting among multiple contacts
+  isSettled?: boolean; // true if single receivable or transaction is fully settled
 }
 
 export type CategoryType = 'Expense' | 'Income';

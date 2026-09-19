@@ -368,7 +368,7 @@ export const StatisticsScreen: React.FC = () => {
         }
       });
     } else if (tx.contactId && state.contacts.some(c => c.id === tx.contactId)) {
-      const isSettled = tx.splits?.some(s => s.contactId === tx.contactId && s.isSettled);
+      const isSettled = tx.isSettled || tx.splits?.some(s => s.contactId === tx.contactId && s.isSettled);
       if (!isSettled) {
         if (tx.type === 'Expense') {
           contactReceivablesMap[tx.contactId] = (contactReceivablesMap[tx.contactId] || 0) + tx.amount;

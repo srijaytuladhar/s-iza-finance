@@ -85,7 +85,7 @@ const FinanceContext = createContext<{
   deleteCategory: (id: string) => Promise<void>;
   addContact: (name: string) => Promise<void>;
   deleteContact: (id: string) => Promise<void>;
-  settleContactBalance: (contactId: string, accountId: string) => Promise<void>;
+  settleContactBalance: (contactId: string, accountId: string, transactionIds?: string[]) => Promise<void>;
   exportBackupData: () => Promise<void>;
   importBackupData: () => Promise<{ success: boolean; message: string; summary?: string; pendingData?: FinanceData } | undefined>;
   confirmImport: (data: FinanceData) => Promise<void>;
@@ -415,19 +415,28 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
   };
 
   // --- SETTLE SPLITS / RECEIVABLES ---
-  const settleContactBalance = async (contactId: string, accountId: string) => {
+  const settleContactBalance = async (contactId: string, accountId: string, transactionIds?: string[]) => {
     const contact = state.contacts.find(c => c.id === contactId);
     if (!contact) return;
 
     let owedToUs = 0;
     let weOwe = 0;
+    const settledDescriptions: string[] = [];
+
+    const isTargetTx = (txId: string) => {
+      if (!transactionIds || transactionIds.length === 0) return true;
+      return transactionIds.includes(txId);
+    };
 
     state.transactions.forEach(tx => {
-      if (!tx.isReceivable) return;
+      if (!tx.isReceivable || !isTargetTx(tx.id)) return;
+
+      let hasMatch = false;
 
       if (tx.splits && tx.splits.length > 0) {
         tx.splits.forEach(s => {
           if (s.contactId === contactId && !s.isSettled) {
+            hasMatch = true;
             if (tx.type === 'Expense') {
               owedToUs += s.amount;
             } else if (tx.type === 'Income') {
@@ -436,54 +445,74 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
           }
         });
       } else if (tx.contactId === contactId) {
-        if (tx.type === 'Expense') {
-          owedToUs += tx.amount;
-        } else if (tx.type === 'Income') {
-          weOwe += tx.amount;
+        const isAlreadySettled = tx.isSettled || tx.splits?.some(s => s.contactId === contactId && s.isSettled);
+        if (!isAlreadySettled) {
+          hasMatch = true;
+          if (tx.type === 'Expense') {
+            owedToUs += tx.amount;
+          } else if (tx.type === 'Income') {
+            weOwe += tx.amount;
+          }
         }
+      }
+
+      if (hasMatch && (tx.description || tx.category)) {
+        settledDescriptions.push(tx.description || tx.category);
       }
     });
 
     const netOwed = owedToUs - weOwe;
-    if (netOwed === 0) return;
+    if (owedToUs === 0 && weOwe === 0) return;
 
     // 1. Settle in existing transactions
     const updatedTransactions = state.transactions.map(tx => {
-      if (!tx.isReceivable) return tx;
+      if (!tx.isReceivable || !isTargetTx(tx.id)) return tx;
 
       if (tx.splits && tx.splits.length > 0) {
-        const hasContactSplit = tx.splits.some(s => s.contactId === contactId);
+        const hasContactSplit = tx.splits.some(s => s.contactId === contactId && !s.isSettled);
         if (hasContactSplit) {
           const splits = tx.splits.map(s => 
             s.contactId === contactId ? { ...s, isSettled: true } : s
           );
+          const allSettled = splits.every(s => s.isSettled);
           return {
             ...tx,
             splits,
+            isSettled: allSettled,
           };
         }
       } else if (tx.contactId === contactId) {
         return {
           ...tx,
+          isSettled: true,
           splits: [{ contactId, amount: tx.amount, isSettled: true }],
         };
       }
       return tx;
     });
 
-    // 2. Add Settlement Transaction
-    const settlementTx: Transaction = {
-      id: Date.now().toString(),
-      accountId,
-      type: netOwed > 0 ? 'Income' : 'Expense',
-      amount: Math.abs(netOwed),
-      description: `Settlement with ${contact.name}`,
-      category: 'Settlement',
-      date: new Date().toISOString(),
-      isReceivable: false,
-    };
+    // 2. Add Settlement Transaction (only if net transfer amount is non-zero)
+    if (netOwed !== 0) {
+      let settlementDesc = `Settlement with ${contact.name}`;
+      if (settledDescriptions.length === 1) {
+        settlementDesc = `Settlement: ${settledDescriptions[0]} (${contact.name})`;
+      } else if (transactionIds && transactionIds.length > 0) {
+        settlementDesc = `Settlement with ${contact.name} (${transactionIds.length} items)`;
+      }
 
-    updatedTransactions.push(settlementTx);
+      const settlementTx: Transaction = {
+        id: Date.now().toString(),
+        accountId,
+        type: netOwed > 0 ? 'Income' : 'Expense',
+        amount: Math.abs(Number(netOwed.toFixed(2))),
+        description: settlementDesc,
+        category: 'Settlement',
+        date: new Date().toISOString(),
+        isReceivable: false,
+      };
+
+      updatedTransactions.push(settlementTx);
+    }
 
     await saveStateAndStorage({ transactions: updatedTransactions });
   };
