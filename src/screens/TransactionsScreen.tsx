@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { 
   View, 
   Text, 
@@ -8,7 +8,8 @@ import {
   Modal, 
   TextInput, 
   ScrollView, 
-  SafeAreaView 
+  SafeAreaView,
+  Platform 
 } from 'react-native';
 import { useFinance } from '../context/FinanceContext';
 import { Transaction, TransactionType } from '../types/finance';
@@ -17,6 +18,16 @@ import { FinanceIcon } from '../utils/iconMap';
 import { useTheme } from '../utils/theme';
 import { GlassBackground } from '../components/GlassBackground';
 import { TransactionModal } from '../components/TransactionModal';
+
+const DEFAULT_EXPENSE_CATEGORIES = [
+  { id: 'def-food', name: 'Food', icon: 'utensils', color: '#EF4444' },
+  { id: 'def-shopping', name: 'Shopping', icon: 'shopping-cart', color: '#EC4899' },
+  { id: 'def-transport', name: 'Transport', icon: 'car', color: '#3B82F6' },
+  { id: 'def-bills', name: 'Bills', icon: 'home', color: '#F59E0B' },
+  { id: 'def-entertainment', name: 'Entertainment', icon: 'gamepad', color: '#8B5CF6' },
+  { id: 'def-health', name: 'Health', icon: 'medkit', color: '#10B981' },
+  { id: 'def-groceries', name: 'Groceries', icon: 'store', color: '#14B8A6' },
+];
 
 export const TransactionsScreen: React.FC<{ route?: any; navigation?: any }> = ({ route, navigation }) => {
   const { 
@@ -33,6 +44,7 @@ export const TransactionsScreen: React.FC<{ route?: any; navigation?: any }> = (
   const [filterCategory, setFilterCategory] = useState('');
   const [filterType, setFilterType] = useState<TransactionType | ''>('');
   const [showFilters, setShowFilters] = useState(false);
+  const categoryScrollRef = useRef<ScrollView>(null);
 
   // Sync route params when navigated with filter parameters
   useEffect(() => {
@@ -50,6 +62,99 @@ export const TransactionsScreen: React.FC<{ route?: any; navigation?: any }> = (
   const [modalVisible, setModalVisible] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
 
+  // Check if any filter is active
+  const hasActiveFilters = Boolean(filterAccount || filterCategory || filterType || search);
+
+  // Categories to display for horizontal scroll (defaults to Expense categories, adapts to Income if Income selected)
+  const displayedCategories = useMemo(() => {
+    const targetType = filterType === 'Income' ? 'Income' : 'Expense';
+
+    // 1. Defined categories from state matching targetType
+    const list: { id: string; name: string; icon: string; color: string }[] = state.categories
+      .filter(c => c.type === targetType)
+      .map(c => ({
+        id: c.id,
+        name: c.name,
+        icon: c.icon || (targetType === 'Expense' ? 'tag' : 'money-bill-wave'),
+        color: c.color || (targetType === 'Expense' ? '#EF4444' : '#10B981'),
+      }));
+
+    // 2. Also collect any categories present in transactions of this type that might not be in state.categories
+    const existingNames = new Set(list.map(c => c.name.toLowerCase()));
+    state.transactions.forEach(tx => {
+      const matchesType = targetType === 'Income' 
+        ? (tx.type || '').toLowerCase() === 'income' 
+        : (tx.type || '').toLowerCase() === 'expense';
+      if (matchesType && tx.category && !existingNames.has(tx.category.toLowerCase())) {
+        existingNames.add(tx.category.toLowerCase());
+        list.push({
+          id: `tx-cat-${tx.category}`,
+          name: tx.category,
+          icon: targetType === 'Expense' ? 'tag' : 'money-bill-wave',
+          color: targetType === 'Expense' ? colors.primary : '#10B981',
+        });
+      }
+    });
+
+    // 3. Fallback to standard defaults if targetType is Expense and no categories exist yet
+    if (targetType === 'Expense' && list.length === 0) {
+      return DEFAULT_EXPENSE_CATEGORIES;
+    }
+
+    return list;
+  }, [state.categories, state.transactions, filterType, colors.primary]);
+
+  // Auto-scroll to selected category if present
+  useEffect(() => {
+    if (filterCategory && displayedCategories.length > 0) {
+      const index = displayedCategories.findIndex(
+        c => c.name.toLowerCase() === filterCategory.toLowerCase()
+      );
+      if (index >= 0 && categoryScrollRef.current) {
+        setTimeout(() => {
+          categoryScrollRef.current?.scrollTo({ x: Math.max(0, (index + 1) * 95 - 40), animated: true });
+        }, 50);
+      }
+    }
+  }, [filterCategory, displayedCategories]);
+
+  const handleResetFilters = () => {
+    setFilterAccount('');
+    setFilterCategory('');
+    setFilterType('');
+    setSearch('');
+  };
+
+  const handleCategorySelect = (categoryName: string) => {
+    if (filterCategory.toLowerCase() === categoryName.toLowerCase()) {
+      // Toggle off if already selected
+      setFilterCategory('');
+    } else {
+      setFilterCategory(categoryName);
+      // If current filterType is Income or Transfer, adjust to Expense so transactions appear
+      if (filterType === 'Income' || filterType === 'Transfer') {
+        setFilterType('Expense');
+      }
+    }
+  };
+
+  const handleTypeSelect = (type: TransactionType | '') => {
+    setFilterType(type);
+    if (type === 'Income' && filterCategory) {
+      const isIncome = state.categories.some(
+        c => c.type === 'Income' && c.name.toLowerCase() === filterCategory.toLowerCase()
+      );
+      if (!isIncome) setFilterCategory('');
+    } else if (type === 'Expense' && filterCategory) {
+      const isExpense = state.categories.some(
+        c => c.type === 'Expense' && c.name.toLowerCase() === filterCategory.toLowerCase()
+      );
+      if (!isExpense) setFilterCategory('');
+    } else if (type === 'Transfer') {
+      setFilterCategory('');
+    }
+  };
+
   // Filter transactions
   const filteredTransactions = state.transactions.filter(tx => {
     // Description search
@@ -61,7 +166,7 @@ export const TransactionsScreen: React.FC<{ route?: any; navigation?: any }> = (
       return false;
     }
     // Category filter
-    if (filterCategory && tx.category.toLowerCase() !== filterCategory.toLowerCase()) {
+    if (filterCategory && (tx.category || '').toLowerCase() !== filterCategory.toLowerCase()) {
       return false;
     }
     // Type filter
@@ -116,7 +221,7 @@ export const TransactionsScreen: React.FC<{ route?: any; navigation?: any }> = (
 
   return (
     <GlassBackground>
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={[styles.container, { paddingTop: Platform.OS === 'android' ? 36 : 8 }]}>
         {/* Floating Liquid Glass Header: Search & Filter */}
         <View style={[styles.header, colors.glassShadow, { backgroundColor: colors.glassCard, borderColor: colors.glassBorder }]}>
           <View style={[styles.searchBar, { backgroundColor: colors.glassInput, borderColor: colors.glassBorder }]}>
@@ -138,25 +243,111 @@ export const TransactionsScreen: React.FC<{ route?: any; navigation?: any }> = (
             style={[
               styles.filterButton, 
               { 
-                backgroundColor: showFilters ? colors.primary : colors.glassInput, 
-                borderColor: showFilters ? colors.primary : colors.glassBorder 
+                backgroundColor: showFilters ? colors.primary : (hasActiveFilters ? `${colors.primary}25` : colors.glassInput), 
+                borderColor: showFilters ? colors.primary : (hasActiveFilters ? colors.primary : colors.glassBorder) 
               }
             ]}
             onPress={() => setShowFilters(!showFilters)}
           >
-            <FinanceIcon name="filter" size={16} color={showFilters ? '#FFF' : colors.textSecondary} />
+            <FinanceIcon 
+              name="filter" 
+              size={16} 
+              color={showFilters ? '#FFF' : (hasActiveFilters ? colors.primary : colors.textSecondary)} 
+            />
+            {hasActiveFilters && (
+              <View style={[styles.filterActiveDot, { backgroundColor: colors.primary }]} />
+            )}
           </Pressable>
         </View>
 
-        {/* Expanded Filters Glass Card */}
+        {/* ALWAYS-VISIBLE HORIZONTAL EXPENSE FILTER SCROLL */}
+        <View style={styles.expenseQuickScrollContainer}>
+          <ScrollView
+            ref={categoryScrollRef}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.horizontalChipsScroll}
+            style={styles.horizontalScrollWrapper}
+          >
+            <Pressable 
+              style={[
+                styles.filterChip, 
+                { 
+                  backgroundColor: filterCategory === '' ? colors.primary : colors.glassInput, 
+                  borderColor: filterCategory === '' ? colors.primary : colors.glassBorder 
+                }
+              ]}
+              onPress={() => setFilterCategory('')}
+            >
+              <Text style={[styles.filterChipText, { color: filterCategory === '' ? '#FFF' : colors.text }]}>All</Text>
+            </Pressable>
+
+            {displayedCategories.map(cat => {
+              const isSelected = filterCategory.toLowerCase() === cat.name.toLowerCase();
+              const catColor = cat.color || colors.primary;
+
+              return (
+                <Pressable 
+                  key={cat.id}
+                  style={[
+                    styles.categoryFilterChip, 
+                    { 
+                      backgroundColor: isSelected 
+                        ? (isDarkMode ? `${catColor}35` : `${catColor}18`) 
+                        : colors.glassInput, 
+                      borderColor: isSelected ? catColor : colors.glassBorder 
+                    }
+                  ]}
+                  onPress={() => handleCategorySelect(cat.name)}
+                >
+                  <View 
+                    style={[
+                      styles.categoryChipIcon, 
+                      { backgroundColor: isSelected ? catColor : `${catColor}24` }
+                    ]}
+                  >
+                    <FinanceIcon 
+                      name={cat.icon} 
+                      size={11} 
+                      color={isSelected ? '#FFFFFF' : catColor} 
+                    />
+                  </View>
+                  <Text 
+                    style={[
+                      styles.filterChipText, 
+                      { 
+                        color: isSelected 
+                          ? (isDarkMode ? '#FFFFFF' : catColor) 
+                          : colors.text,
+                        fontWeight: isSelected ? '700' : '600'
+                      }
+                    ]}
+                  >
+                    {cat.name}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+        </View>
+
+        {/* Expanded Filters Glass Card (Account & Type More Filters) */}
         {showFilters && (
           <View style={[styles.filtersPanel, colors.glassShadow, { backgroundColor: colors.glassCard, borderColor: colors.glassBorder }]}>
-            <Text style={[styles.filterTitle, { color: colors.text }]}>Filters</Text>
+            <View style={styles.filterTitleRow}>
+              <Text style={[styles.filterTitle, { color: colors.text }]}>More Filters</Text>
+              {hasActiveFilters && (
+                <Pressable onPress={handleResetFilters} hitSlop={8}>
+                  <Text style={[styles.resetButtonText, { color: colors.primary }]}>Reset All</Text>
+                </Pressable>
+              )}
+            </View>
+
+            {/* Account Selector */}
             <View style={styles.filtersRow}>
-              {/* Account Selector */}
               <View style={styles.filterGroup}>
                 <Text style={[styles.filterLabel, { color: colors.textSecondary }]}>Account</Text>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalScrollWrapper}>
                   <Pressable 
                     style={[
                       styles.filterChip, 
@@ -188,8 +379,8 @@ export const TransactionsScreen: React.FC<{ route?: any; navigation?: any }> = (
               </View>
             </View>
 
+            {/* Type Selector */}
             <View style={styles.filtersRow}>
-              {/* Type Selector */}
               <View style={styles.filterGroup}>
                 <Text style={[styles.filterLabel, { color: colors.textSecondary }]}>Type</Text>
                 <View style={styles.chipGroup}>
@@ -203,7 +394,7 @@ export const TransactionsScreen: React.FC<{ route?: any; navigation?: any }> = (
                           borderColor: filterType === t ? colors.primary : colors.glassBorder 
                         }
                       ]}
-                      onPress={() => setFilterType(t as any)}
+                      onPress={() => handleTypeSelect(t as any)}
                     >
                       <Text style={[styles.filterChipText, { color: filterType === t ? '#FFF' : colors.text }]}>
                         {t === '' ? 'All' : t}
@@ -220,10 +411,22 @@ export const TransactionsScreen: React.FC<{ route?: any; navigation?: any }> = (
         {groupedTransactions.length === 0 ? (
           <View style={[styles.emptyContainer, colors.glassShadow, { backgroundColor: colors.glassCard, borderColor: colors.glassBorder }]}>
             <View style={[styles.emptyIconCircle, { backgroundColor: `${colors.primary}20` }]}>
-              <FinanceIcon name="file-invoice-dollar" size={36} color={colors.primary} />
+              <FinanceIcon name={hasActiveFilters ? "filter" : "file-invoice-dollar"} size={36} color={colors.primary} />
             </View>
             <Text style={[styles.emptyText, { color: colors.text }]}>No transactions found.</Text>
-            <Text style={[styles.emptySubText, { color: colors.textSecondary }]}>Add some transactions to track your finances.</Text>
+            <Text style={[styles.emptySubText, { color: colors.textSecondary }]}>
+              {hasActiveFilters 
+                ? 'Try adjusting or clearing your filters.' 
+                : 'Add some transactions to track your finances.'}
+            </Text>
+            {hasActiveFilters && (
+              <Pressable
+                style={[styles.emptyResetBtn, { backgroundColor: colors.primary }]}
+                onPress={handleResetFilters}
+              >
+                <Text style={styles.emptyResetBtnText}>Clear Filters</Text>
+              </Pressable>
+            )}
           </View>
         ) : (
           <FlatList
@@ -318,6 +521,43 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   filterButtonActive: {},
+  filterActiveDot: {
+    position: 'absolute',
+    top: 6,
+    right: 6,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  activeFilterStrip: {
+    marginHorizontal: 16,
+    marginBottom: 10,
+  },
+  activeFilterScroll: {
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 2,
+  },
+  activeFilterPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  activeFilterPillText: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  clearAllBtn: {
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+  },
+  clearAllText: {
+    fontSize: 12,
+    fontWeight: '700',
+  },
   filtersPanel: {
     marginHorizontal: 16,
     marginBottom: 14,
@@ -325,16 +565,42 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     borderWidth: 1.2,
   },
+  filterTitleRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
   filterTitle: {
     fontSize: 15,
     fontWeight: '700',
-    marginBottom: 12,
+  },
+  resetButtonText: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  expenseQuickScrollContainer: {
+    marginBottom: 8,
+    marginHorizontal: 16,
+  },
+  horizontalScrollWrapper: {
+    minHeight: 44,
   },
   filtersRow: {
     marginBottom: 12,
   },
   filterGroup: {
-    flex: 1,
+    width: '100%',
+  },
+  filterGroupHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  clearText: {
+    fontSize: 11,
+    fontWeight: '600',
   },
   filterLabel: {
     fontSize: 12,
@@ -343,6 +609,10 @@ const styles = StyleSheet.create({
   },
   chipGroup: {
     flexDirection: 'row',
+  },
+  horizontalChipsScroll: {
+    alignItems: 'center',
+    paddingVertical: 4,
   },
   filterChip: {
     paddingHorizontal: 14,
@@ -358,6 +628,44 @@ const styles = StyleSheet.create({
   },
   filterChipTextActive: {
     color: '#FFFFFF',
+    fontWeight: '700',
+  },
+  categoryFilterChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingLeft: 6,
+    paddingRight: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+    borderWidth: 1,
+    marginRight: 8,
+  },
+  categoryChipIcon: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 6,
+  },
+  emptyFilterBox: {
+    padding: 10,
+    borderRadius: 10,
+    borderWidth: 1,
+    alignItems: 'center',
+  },
+  emptyFilterBoxText: {
+    fontSize: 12,
+  },
+  emptyResetBtn: {
+    marginTop: 14,
+    paddingHorizontal: 18,
+    paddingVertical: 8,
+    borderRadius: 12,
+  },
+  emptyResetBtnText: {
+    color: '#FFFFFF',
+    fontSize: 13,
     fontWeight: '700',
   },
   dateGroupContainer: {
