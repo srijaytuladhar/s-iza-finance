@@ -61,8 +61,9 @@ export const DashboardScreen: React.FC<{ navigation?: any }> = ({ navigation }) 
   const [txModalType, setTxModalType] = useState<TransactionType>('Expense');
   const [selectedCategory, setSelectedCategory] = useState<string>('');
 
-  // Total balance across all accounts
-  const totalBalance = state.accounts.reduce((sum, acc) => sum + (acc.balance || 0), 0);
+  // Total balance across accounts marked to be included in main balance
+  const includedAccounts = state.accounts.filter(acc => acc.showInMainBalance !== false);
+  const totalBalance = includedAccounts.reduce((sum, acc) => sum + (acc.balance || 0), 0);
 
   // Filter only Expense categories
   const expenseCategories = state.categories.filter(c => c.type === 'Expense');
@@ -172,7 +173,9 @@ export const DashboardScreen: React.FC<{ navigation?: any }> = ({ navigation }) 
                     Total Net Worth
                   </Text>
                   <Text style={[styles.netWorthSub, { color: isDarkMode ? '#64748B' : '#94A3B8' }]}>
-                    {state.accounts.length} {state.accounts.length === 1 ? 'account' : 'accounts'}
+                    {includedAccounts.length === state.accounts.length
+                      ? `${state.accounts.length} ${state.accounts.length === 1 ? 'account' : 'accounts'}`
+                      : `${includedAccounts.length} of ${state.accounts.length} accounts`}
                   </Text>
                 </View>
 
@@ -315,6 +318,12 @@ export const DashboardScreen: React.FC<{ navigation?: any }> = ({ navigation }) 
                         {acc.isDefault && (
                           <View style={styles.defaultBadge}>
                             <Text style={styles.defaultBadgeText}>Default</Text>
+                          </View>
+                        )}
+                        {acc.showInMainBalance === false && (
+                          <View style={[styles.defaultBadge, { backgroundColor: 'rgba(239, 68, 68, 0.28)', marginLeft: 6 }]}>
+                            <FinanceIcon name="eye-slash" size={9} color="#FECACA" style={{ marginRight: 3 }} />
+                            <Text style={[styles.defaultBadgeText, { color: '#FECACA' }]}>Hidden</Text>
                           </View>
                         )}
                       </View>

@@ -8,6 +8,7 @@ export interface Account {
   initialBalance: number;
   color: string; // hex
   isDefault?: boolean;
+  showInMainBalance?: boolean;
 }
 
 export type TransactionType = 'Expense' | 'Income' | 'Transfer';

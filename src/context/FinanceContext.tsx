@@ -94,6 +94,7 @@ const FinanceContext = createContext<{
   confirmImport: (data: FinanceData) => Promise<void>;
   updateSettings: (settings: Settings) => Promise<void>;
   updateDateFilter: (filter: DateFilterConfig) => Promise<void>;
+  toggleAccountMainBalance: (id: string) => Promise<void>;
 } | undefined>(undefined);
 
 // Helper function to recompute balances of all accounts dynamically
@@ -150,6 +151,7 @@ const validateFinanceData = (data: any): string | null => {
     if (!['Bank', 'Wallet', 'Cash'].includes(acc.type)) return `Account at index ${i} has invalid type.`;
     if (typeof acc.initialBalance !== 'number') return `Account at index ${i} has invalid initialBalance.`;
     if (!acc.color || typeof acc.color !== 'string') return `Account at index ${i} has invalid color.`;
+    if (acc.showInMainBalance !== undefined && typeof acc.showInMainBalance !== 'boolean') return `Account at index ${i} has invalid showInMainBalance.`;
   }
 
   // Validate transactions
@@ -235,7 +237,12 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
         const settingsStr = await AsyncStorage.getItem('settings');
         const dateFilterStr = await AsyncStorage.getItem('dashboard_date_filter');
 
-        const loadedAccounts: Account[] = accountsStr ? JSON.parse(accountsStr) : [];
+        const loadedAccounts: Account[] = accountsStr 
+          ? JSON.parse(accountsStr).map((acc: any) => ({
+              ...acc,
+              showInMainBalance: acc.showInMainBalance !== false,
+            })) 
+          : [];
         const loadedTransactions: Transaction[] = transactionsStr ? JSON.parse(transactionsStr) : [];
         const loadedCategories: Category[] = categoriesStr ? JSON.parse(categoriesStr) : [];
         const loadedContacts: Contact[] = contactsStr ? JSON.parse(contactsStr) : [];
@@ -329,6 +336,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
       ...accountData,
       id,
       balance: accountData.initialBalance,
+      showInMainBalance: accountData.showInMainBalance !== false,
     };
 
     let updatedAccounts = [...state.accounts, newAccount];
@@ -338,6 +346,13 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
         acc.id === id ? acc : { ...acc, isDefault: false }
       );
     }
+    await saveStateAndStorage({ accounts: updatedAccounts });
+  };
+
+  const toggleAccountMainBalance = async (id: string) => {
+    const updatedAccounts = state.accounts.map(acc => 
+      acc.id === id ? { ...acc, showInMainBalance: !(acc.showInMainBalance !== false) } : acc
+    );
     await saveStateAndStorage({ accounts: updatedAccounts });
   };
 
@@ -665,7 +680,14 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
   };
 
   const confirmImport = async (data: FinanceData) => {
-    await saveStateAndStorage(data);
+    const normalizedAccounts = (data.accounts || []).map(acc => ({
+      ...acc,
+      showInMainBalance: acc.showInMainBalance !== false,
+    }));
+    await saveStateAndStorage({
+      ...data,
+      accounts: normalizedAccounts,
+    });
   };
 
   const updateSettings = async (newSettings: Settings) => {
@@ -703,6 +725,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
         confirmImport,
         updateSettings,
         updateDateFilter,
+        toggleAccountMainBalance,
       }}
     >
       {children}

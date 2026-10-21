@@ -410,8 +410,9 @@ export const StatisticsScreen: React.FC = () => {
   });
   const monthTransactions = rangeTransactions; // backward compatibility
 
-  // Calculate total balance across all accounts
-  const totalBalance = state.accounts.reduce((sum, acc) => sum + (acc.balance || 0), 0);
+  // Calculate total balance across accounts included in main balance
+  const includedAccounts = state.accounts.filter(acc => acc.showInMainBalance !== false);
+  const totalBalance = includedAccounts.reduce((sum, acc) => sum + (acc.balance || 0), 0);
 
   // Calculate total income and expense for the selected range
   let monthlyIncome = 0;
@@ -599,7 +600,11 @@ export const StatisticsScreen: React.FC = () => {
               </Text>
 
               <View style={styles.balanceFooterRow}>
-                <Text style={[styles.balanceFooterSub, { color: isDarkMode ? '#94A3B8' : '#64748B' }]}>Across {state.accounts.length} linked accounts</Text>
+                <Text style={[styles.balanceFooterSub, { color: isDarkMode ? '#94A3B8' : '#64748B' }]}>
+                  {includedAccounts.length === state.accounts.length
+                    ? `Across ${state.accounts.length} linked accounts`
+                    : `Across ${includedAccounts.length} of ${state.accounts.length} linked accounts`}
+                </Text>
               </View>
             </BlurView>
           </View>

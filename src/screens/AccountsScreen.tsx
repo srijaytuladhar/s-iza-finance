@@ -33,7 +33,7 @@ const PRESETS_COLORS = [
 ];
 
 export const AccountsScreen: React.FC = () => {
-  const { state, addAccount, editAccount, deleteAccount } = useFinance();
+  const { state, addAccount, editAccount, deleteAccount, toggleAccountMainBalance } = useFinance();
   const { colors, isDarkMode } = useTheme();
   const [modalVisible, setModalVisible] = useState(false);
   const [editingAccount, setEditingAccount] = useState<Account | null>(null);
@@ -45,6 +45,7 @@ export const AccountsScreen: React.FC = () => {
       initialBalance: '',
       color: '#3B82F6',
       isDefault: false,
+      showInMainBalance: true,
     }
   });
 
@@ -56,6 +57,7 @@ export const AccountsScreen: React.FC = () => {
       initialBalance: '0',
       color: '#3B82F6',
       isDefault: state.accounts.length === 0, // default if first account
+      showInMainBalance: true,
     });
     setModalVisible(true);
   };
@@ -68,6 +70,7 @@ export const AccountsScreen: React.FC = () => {
       initialBalance: acc.initialBalance.toString(),
       color: acc.color,
       isDefault: acc.isDefault || false,
+      showInMainBalance: acc.showInMainBalance !== false,
     });
     setModalVisible(true);
   };
@@ -90,6 +93,7 @@ export const AccountsScreen: React.FC = () => {
       initialBalance: initBal,
       color: data.color,
       isDefault: data.isDefault,
+      showInMainBalance: data.showInMainBalance !== false,
     };
 
     try {
@@ -140,31 +144,45 @@ export const AccountsScreen: React.FC = () => {
     );
   };
 
-  return (
-    <GlassBackground>
-      <SafeAreaView style={styles.container}>
-      {state.accounts.length === 0 ? (
-        <View style={styles.emptyContainer}>
-          <FinanceIcon name="university" size={48} color={colors.textSecondary} />
-          <Text style={[styles.emptyText, { color: colors.textSecondary }]}>No accounts added yet.</Text>
-          <Text style={[styles.emptySubText, { color: colors.textSecondary }]}>Create your first Bank, Wallet, or Cash account.</Text>
-          <Pressable style={styles.emptyButton} onPress={openAddModal}>
-            <Text style={styles.emptyButtonText}>Add Account</Text>
-          </Pressable>
+    const includedAccounts = state.accounts.filter(acc => acc.showInMainBalance !== false);
+
+    return (
+      <GlassBackground>
+        <SafeAreaView style={styles.container}>
+        <View style={styles.screenHeader}>
+          <View>
+            <Text style={[styles.screenTitle, { color: colors.text }]}>Accounts</Text>
+            <Text style={[styles.screenSubtitle, { color: colors.textSecondary }]}>
+              {includedAccounts.length === state.accounts.length
+                ? `${state.accounts.length} ${state.accounts.length === 1 ? 'account' : 'accounts'} in main balance`
+                : `${includedAccounts.length} of ${state.accounts.length} in main balance`}
+            </Text>
+          </View>
         </View>
-      ) : (
-        <FlatList
-          data={state.accounts}
-          keyExtractor={item => item.id}
-          contentContainerStyle={styles.listContent}
-          renderItem={({ item }) => (
-            <AccountCard 
-              account={item} 
-              onPress={() => openEditModal(item)}
-            />
-          )}
-        />
-      )}
+
+        {state.accounts.length === 0 ? (
+          <View style={styles.emptyContainer}>
+            <FinanceIcon name="university" size={48} color={colors.textSecondary} />
+            <Text style={[styles.emptyText, { color: colors.textSecondary }]}>No accounts added yet.</Text>
+            <Text style={[styles.emptySubText, { color: colors.textSecondary }]}>Create your first Bank, Wallet, or Cash account.</Text>
+            <Pressable style={styles.emptyButton} onPress={openAddModal}>
+              <Text style={styles.emptyButtonText}>Add Account</Text>
+            </Pressable>
+          </View>
+        ) : (
+          <FlatList
+            data={state.accounts}
+            keyExtractor={item => item.id}
+            contentContainerStyle={styles.listContent}
+            renderItem={({ item }) => (
+              <AccountCard 
+                account={item} 
+                onPress={() => openEditModal(item)}
+                onToggleMainBalance={() => toggleAccountMainBalance(item.id)}
+              />
+            )}
+          />
+        )}
 
       {state.accounts.length > 0 && (
         <Pressable 
@@ -304,9 +322,30 @@ export const AccountsScreen: React.FC = () => {
               />
             </View>
 
+            {/* Show in Main Balance Toggle */}
+            <View style={[styles.toggleRow, { borderTopColor: colors.border, borderBottomColor: colors.border }]}>
+              <View style={styles.toggleTextCol}>
+                <Text style={[styles.toggleLabel, { color: colors.text }]}>Show in Main Balance</Text>
+                <Text style={[styles.toggleDesc, { color: colors.textSecondary }]}>
+                  Include this account in Dashboard total net worth
+                </Text>
+              </View>
+              <Controller
+                name="showInMainBalance"
+                control={control}
+                render={({ field: { value, onChange } }) => (
+                  <Switch
+                    value={value}
+                    onValueChange={onChange}
+                    trackColor={{ false: isDarkMode ? 'rgba(255, 255, 255, 0.16)' : 'rgba(0, 0, 0, 0.12)', true: colors.primary }}
+                  />
+                )}
+              />
+            </View>
+
             {/* Set Default Toggle */}
-            <View style={styles.toggleRow}>
-              <View>
+            <View style={[styles.toggleRow, { borderTopWidth: 0, borderBottomColor: colors.border }]}>
+              <View style={styles.toggleTextCol}>
                 <Text style={[styles.toggleLabel, { color: colors.text }]}>Default Account</Text>
                 <Text style={[styles.toggleDesc, { color: colors.textSecondary }]}>Use this account as default for new transactions</Text>
               </View>
@@ -318,6 +357,7 @@ export const AccountsScreen: React.FC = () => {
                     value={value}
                     onValueChange={onChange}
                     disabled={editingAccount?.isDefault} // Cannot turn off if it is already default
+                    trackColor={{ false: isDarkMode ? 'rgba(255, 255, 255, 0.16)' : 'rgba(0, 0, 0, 0.12)', true: colors.primary }}
                   />
                 )}
               />
@@ -340,8 +380,24 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  screenHeader: {
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    paddingBottom: 4,
+  },
+  screenTitle: {
+    fontSize: 24,
+    fontWeight: '800',
+    letterSpacing: -0.5,
+  },
+  screenSubtitle: {
+    fontSize: 13,
+    fontWeight: '500',
+    marginTop: 2,
+  },
   listContent: {
     padding: 16,
+    paddingTop: 8,
     paddingBottom: 110,
   },
   emptyContainer: {
@@ -495,21 +551,21 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 12,
+    paddingVertical: 14,
     borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
     borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
-    marginBottom: 24,
+    marginBottom: 16,
+  },
+  toggleTextCol: {
+    flex: 1,
+    paddingRight: 12,
   },
   toggleLabel: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#1E293B',
   },
   toggleDesc: {
     fontSize: 12,
-    color: '#64748B',
     marginTop: 2,
   },
   saveButton: {
