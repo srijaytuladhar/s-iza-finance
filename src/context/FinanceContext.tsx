@@ -176,6 +176,9 @@ const validateFinanceData = (data: any): string | null => {
     if (!cat.icon || typeof cat.icon !== 'string') return `Category at index ${i} has invalid icon.`;
     if (!cat.color || typeof cat.color !== 'string') return `Category at index ${i} has invalid color.`;
     if (!['Expense', 'Income'].includes(cat.type)) return `Category at index ${i} has invalid type.`;
+    if (cat.budget !== undefined && (typeof cat.budget !== 'number' || isNaN(cat.budget))) {
+      return `Category at index ${i} has invalid budget.`;
+    }
   }
 
   // Validate contacts

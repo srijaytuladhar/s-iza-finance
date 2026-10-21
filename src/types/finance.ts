@@ -42,6 +42,7 @@ export interface Category {
   icon: string; // fa-* or pi-* icon name
   color: string; // hex
   type: CategoryType;
+  budget?: number; // Optional monthly budget limit
 }
 
 export interface Contact {

@@ -17,6 +17,7 @@ import { useForm, Controller } from 'react-hook-form';
 import { showAlert } from '../utils/alert';
 import { useTheme } from '../utils/theme';
 import { GlassBackground } from '../components/GlassBackground';
+import { formatNumber } from '../utils/format';
 
 const PRESET_ICONS = [
   'shopping-cart',
@@ -54,18 +55,22 @@ const PRESETS_COLORS = [
 export const CategoriesScreen: React.FC = () => {
   const { state, addCategory, editCategory, deleteCategory } = useFinance();
   const { colors, isDarkMode } = useTheme();
+  const currencySymbol = state.settings.currencySymbol;
   const [activeTab, setActiveTab] = useState<CategoryType>('Expense');
   const [modalVisible, setModalVisible] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
 
-  const { control, handleSubmit, reset, setValue } = useForm({
+  const { control, handleSubmit, reset, setValue, watch } = useForm({
     defaultValues: {
       name: '',
       type: 'Expense' as CategoryType,
       icon: 'tag',
       color: '#EF4444',
+      budget: '',
     }
   });
+
+  const watchedType = watch('type');
 
   // Filter categories by type
   const filteredCategories = state.categories.filter(c => c.type === activeTab);
@@ -77,6 +82,7 @@ export const CategoriesScreen: React.FC = () => {
       type: activeTab,
       icon: 'tag',
       color: activeTab === 'Expense' ? '#EF4444' : '#10B981',
+      budget: '',
     });
     setModalVisible(true);
   };
@@ -88,6 +94,7 @@ export const CategoriesScreen: React.FC = () => {
       type: cat.type,
       icon: cat.icon,
       color: cat.color,
+      budget: cat.budget ? cat.budget.toString() : '',
     });
     setModalVisible(true);
   };
@@ -98,11 +105,15 @@ export const CategoriesScreen: React.FC = () => {
       return;
     }
 
-    const payload = {
+    const budgetVal = data.budget ? parseFloat(data.budget) : 0;
+    const isExpense = data.type === 'Expense';
+
+    const payload: Omit<Category, 'id'> = {
       name: data.name.trim(),
       type: data.type,
       icon: data.icon,
       color: data.color,
+      budget: isExpense && !isNaN(budgetVal) && budgetVal > 0 ? budgetVal : undefined,
     };
 
     try {
@@ -200,7 +211,25 @@ export const CategoriesScreen: React.FC = () => {
               <View style={[styles.categoryIconCircle, { backgroundColor: `${item.color}20`, borderColor: `${item.color}40`, borderWidth: 1 }]}>
                 <FinanceIcon name={item.icon} size={20} color={item.color} />
               </View>
-              <Text style={[styles.categoryName, { color: colors.text }]}>{item.name}</Text>
+              <View style={styles.categoryInfo}>
+                <Text style={[styles.categoryName, { color: colors.text }]}>{item.name}</Text>
+                {item.type === 'Expense' && (
+                  <View style={styles.categorySubRow}>
+                    {item.budget && item.budget > 0 ? (
+                      <View style={[styles.budgetChip, { backgroundColor: `${colors.primary}18`, borderColor: `${colors.primary}35` }]}>
+                        <FinanceIcon name="wallet" size={11} color={colors.primary} />
+                        <Text style={[styles.budgetChipText, { color: colors.primary }]}>
+                          Budget: {formatNumber(item.budget, currencySymbol)}/mo
+                        </Text>
+                      </View>
+                    ) : (
+                      <Text style={[styles.categoryNoBudgetHint, { color: colors.textSecondary }]}>
+                        No budget set
+                      </Text>
+                    )}
+                  </View>
+                )}
+              </View>
               <FinanceIcon name="chevron-right" size={14} color={colors.textSecondary} />
             </Pressable>
           )}
@@ -295,6 +324,73 @@ export const CategoriesScreen: React.FC = () => {
                 )}
               />
             </View>
+
+            {/* Category Monthly Budget (Expense only) */}
+            {watchedType === 'Expense' && (
+              <View style={styles.inputGroup}>
+                <View style={styles.labelHeaderRow}>
+                  <Text style={[styles.label, { color: colors.textSecondary, marginBottom: 0 }]}>
+                    Monthly Budget Limit (Optional)
+                  </Text>
+                  <Controller
+                    name="budget"
+                    control={control}
+                    render={({ field: { value, onChange } }) => (
+                      value ? (
+                        <Pressable onPress={() => onChange('')} hitSlop={6}>
+                          <Text style={styles.clearBudgetText}>Clear</Text>
+                        </Pressable>
+                      ) : <View />
+                    )}
+                  />
+                </View>
+                <Text style={[styles.helperText, { color: colors.textSecondary }]}>
+                  Track your spending against this limit on the Statistics screen.
+                </Text>
+                <Controller
+                  name="budget"
+                  control={control}
+                  render={({ field: { value, onChange } }) => (
+                    <View>
+                      <View style={[styles.budgetInputContainer, { backgroundColor: colors.inputBackground, borderColor: colors.border }]}>
+                        <Text style={[styles.currencyPrefix, { color: colors.primary }]}>
+                          {currencySymbol || 'रू'}
+                        </Text>
+                        <TextInput
+                          style={[styles.budgetInput, { color: colors.text }]}
+                          placeholder="0.00 (No limit)"
+                          placeholderTextColor={colors.textSecondary}
+                          keyboardType="decimal-pad"
+                          value={value}
+                          onChangeText={onChange}
+                        />
+                        {value ? (
+                          <Pressable onPress={() => onChange('')} style={styles.inputClearBtn}>
+                            <FinanceIcon name="times-circle" size={16} color={colors.textSecondary} />
+                          </Pressable>
+                        ) : null}
+                      </View>
+
+                      {/* Quick preset increments */}
+                      <View style={styles.quickChipsRow}>
+                        {[500, 1000, 2000, 5000].map(amt => (
+                          <Pressable
+                            key={amt}
+                            style={[styles.quickChip, { backgroundColor: colors.inputBackground, borderColor: colors.border }]}
+                            onPress={() => {
+                              const curr = parseFloat(value) || 0;
+                              onChange(String(curr + amt));
+                            }}
+                          >
+                            <Text style={[styles.quickChipText, { color: colors.text }]}>+{amt}</Text>
+                          </Pressable>
+                        ))}
+                      </View>
+                    </View>
+                  )}
+                />
+              </View>
+            )}
 
             {/* Color Swatch */}
             <View style={styles.inputGroup}>
@@ -406,10 +502,36 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginRight: 14,
   },
+  categoryInfo: {
+    flex: 1,
+    justifyContent: 'center',
+  },
+  categorySubRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 4,
+  },
+  budgetChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+    borderWidth: 1,
+    gap: 5,
+    alignSelf: 'flex-start',
+  },
+  budgetChipText: {
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  categoryNoBudgetHint: {
+    fontSize: 11,
+    opacity: 0.65,
+  },
   categoryName: {
     fontSize: 16,
     fontWeight: '600',
-    flex: 1,
   },
   emptyContainer: {
     flex: 1,
@@ -495,6 +617,59 @@ const styles = StyleSheet.create({
   },
   inputGroup: {
     marginBottom: 20,
+  },
+  labelHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  clearBudgetText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#EF4444',
+  },
+  helperText: {
+    fontSize: 12,
+    marginBottom: 8,
+    lineHeight: 16,
+  },
+  budgetInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    height: 48,
+  },
+  currencyPrefix: {
+    fontSize: 16,
+    fontWeight: '700',
+    marginRight: 8,
+  },
+  budgetInput: {
+    flex: 1,
+    height: 48,
+    fontSize: 16,
+  },
+  inputClearBtn: {
+    padding: 6,
+  },
+  quickChipsRow: {
+    flexDirection: 'row',
+    marginTop: 8,
+    gap: 8,
+  },
+  quickChip: {
+    flex: 1,
+    paddingVertical: 7,
+    alignItems: 'center',
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  quickChipText: {
+    fontSize: 12,
+    fontWeight: '600',
   },
   label: {
     fontSize: 14,
