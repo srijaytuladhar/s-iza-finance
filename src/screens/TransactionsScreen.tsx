@@ -228,7 +228,7 @@ export const TransactionsScreen: React.FC<{ route?: any; navigation?: any }> = (
             <FinanceIcon name="search" size={16} color={colors.textSecondary} style={styles.searchIcon} />
             <TextInput
               style={[styles.searchInput, { color: colors.text }]}
-              placeholder="Search description..."
+              placeholder="Search remarks..."
               placeholderTextColor={colors.textSecondary}
               value={search}
               onChangeText={setSearch}

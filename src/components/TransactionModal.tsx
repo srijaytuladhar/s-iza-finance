@@ -255,6 +255,26 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
               )}
             />
 
+            {/* Remarks Input (Below Amount for Expense and Income) */}
+            {selectedType !== 'Transfer' && (
+              <View style={styles.inputGroup}>
+                <Text style={[styles.label, { color: colors.textSecondary }]}>Remarks</Text>
+                <Controller
+                  name="description"
+                  control={control}
+                  render={({ field: { value, onChange } }) => (
+                    <TextInput
+                      style={[styles.textInput, { backgroundColor: colors.inputBackground, borderColor: colors.border, color: colors.text }]}
+                      placeholder="e.g. Groceries, Salary, etc."
+                      placeholderTextColor={colors.textSecondary}
+                      value={value}
+                      onChangeText={onChange}
+                    />
+                  )}
+                />
+              </View>
+            )}
+
             {/* Category Picker (Fixed horizontal scroll for Expense/Income) */}
             {selectedType !== 'Transfer' && (
               <Controller
@@ -355,23 +375,25 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
               )}
             />
 
-            {/* Description Input */}
-            <View style={styles.inputGroup}>
-              <Text style={[styles.label, { color: colors.textSecondary }]}>Description</Text>
-              <Controller
-                name="description"
-                control={control}
-                render={({ field: { value, onChange } }) => (
-                  <TextInput
-                    style={[styles.textInput, { backgroundColor: colors.inputBackground, borderColor: colors.border, color: colors.text }]}
-                    placeholder="e.g. Groceries, Salary, etc."
-                    placeholderTextColor={colors.textSecondary}
-                    value={value}
-                    onChangeText={onChange}
-                  />
-                )}
-              />
-            </View>
+            {/* Remarks Input (For Transfer) */}
+            {selectedType === 'Transfer' && (
+              <View style={styles.inputGroup}>
+                <Text style={[styles.label, { color: colors.textSecondary }]}>Remarks</Text>
+                <Controller
+                  name="description"
+                  control={control}
+                  render={({ field: { value, onChange } }) => (
+                    <TextInput
+                      style={[styles.textInput, { backgroundColor: colors.inputBackground, borderColor: colors.border, color: colors.text }]}
+                      placeholder="e.g. Transfer note, savings, etc."
+                      placeholderTextColor={colors.textSecondary}
+                      value={value}
+                      onChangeText={onChange}
+                    />
+                  )}
+                />
+              </View>
+            )}
 
             {/* Split / Receivable (Only for Expense) */}
             {selectedType === 'Expense' && (
